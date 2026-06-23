@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envio de Talões - Verdecard</title>
+    <link rel="stylesheet" href="./envio.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="../administrador/dashboard.html" class="menu-item">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html" class="menu-item">Gerenciar perfis</a>
+            <a href="./envio.html" class="menu-item active">Enviar Talões</a>
+            <a href="../gestor/relatorios.html" class="menu-item">Relatórios</a>
+            <a href="../Lojas/lojas.html" class="menu-item">Lojas</a> <br><br>
+            <p>Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="admin-header">
+            <div class="header-title">
+                <h1>Envio de Talões</h1>
+            </div>
+            <div class="header-right">
+                <span id="nome-admin">Administrador</span>
+                <div class="user-avatar"></div>
+                <button id="btn-sair" class="btn-sair">Sair</button>
+            </div>
+        </header>
+
+        <section class="top-grid">
+            <div class="action-card">
+                <h2>Enviar nova remessa</h2>
+                <button id="btn-abrir-envio" class="btn-primary-outline">Acessar</button>
+            </div>
+
+            <div class="ai-card">
+                <strong>Sugestão IA</strong>
+                <p id="texto-sugestao-ia">Analisando estoque das lojas...</p>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="table-controls">
+                <h2>Envios</h2>
+
+                <div class="controls-right">
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="busca-envio" placeholder="Search">
+                    </div>
+
+                    <div class="select-wrapper">
+                        <select id="filtro-status">
+                            <option value="">Filtrar por : status</option>
+                            <option value="Em trânsito">Em trânsito</option>
+                            <option value="Entregue">Entregue</option>
+                            <option value="Recebido">Recebido</option>
+                            <option value="Pendente">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="4%"></th>
+                            <th>Data / hora</th>
+                            <th>remessa</th>
+                            <th>Loja</th>
+                            <th>Qnt.Enviada</th>
+                            <th>Recomendada</th>
+                            <th>Mínima</th>
+                            <th>prioridade da IA</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-envios-corpo">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-envio">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btn-fechar-modal"><span>&times;</span></button>
+            <h2 id="modal-envio-titulo">Cadastrar envio de talões</h2>
+
+            <form id="form-envio">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Data/hora</label>
+                        <input type="text" id="env-data-hora" readonly class="bg-locked">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Código de envio</label>
+                        <input type="text" id="env-codigo" readonly class="bg-locked">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Pesquisar loja destinatária</label>
+                        <input type="text" id="busca-loja" placeholder="Digite o código, nome ou UF da loja">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Loja</label>
+                        <div class="select-filter-wrapper">
+                            <select id="env-loja" required>
+                                <option value="">Selecione a filial...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="store-preview full-width">
+                        <p><strong>Código:</strong> <span id="preview-codigo">-</span></p>
+                        <p><strong>Loja:</strong> <span id="preview-nome">-</span></p>
+                        <p><strong>UF:</strong> <span id="preview-uf">-</span></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Quantidade enviada</label>
+                        <input type="number" id="env-quantidade" min="1" placeholder="Quantidade" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Recomendação IA</label>
+                        <input type="number" id="env-recomendada" readonly class="bg-locked">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Quantidade mínima</label>
+                        <input type="number" id="env-minima" readonly class="bg-locked">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prioridade</label>
+                        <input type="text" id="env-prioridade" readonly class="bg-locked">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data prevista de entrega</label>
+                        <input type="date" id="env-entrega-prevista">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status da remessa</label>
+                        <div class="select-filter-wrapper">
+                            <select id="env-status">
+                                <option value="Em trânsito">Em trânsito</option>
+                                <option value="Entregue">Entregue</option>
+                                <option value="Recebido">Recebido</option>
+                                <option value="Pendente">Pendente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-note">
+                    <strong>RF11 / RF11-IA / RF12-IA</strong>
+                    <p id="env-insight">Selecione uma loja para simular o alerta, a previsão e a prioridade de envio.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" id="btn-submit-envio" class="btn-submit-save">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./envio.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

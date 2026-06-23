@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Estoque - Verdecard</title>
+    <link rel="stylesheet" href="./gestor.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+    <aside class="manager-sidebar">
+        <div class="profile-block">
+            <div class="profile-avatar"></div>
+            <p>Olá <span id="nome-gestor-sidebar">Gestor</span></p>
+        </div>
+
+        <nav class="manager-nav">
+            <a href="./dashboard.html" class="manager-link active">Dashboard</a>
+            <a href="./relatorios.html" class="manager-link">Relatórios</a>
+        </nav>
+
+        <nav class="manager-nav secondary">
+            <strong>Outros</strong>
+            <a href="#" class="manager-link">Configurações</a>
+            <a href="#" class="manager-link">Conta</a>
+            <a href="#" class="manager-link">Ajuda</a>
+        </nav>
+
+        <button id="btn-sair" class="manager-logout">Sair</button>
+    </aside>
+
+    <main class="manager-content">
+        <div class="manager-topbar"></div>
+
+        <section class="dashboard-top">
+            <div class="ai-summary-panel">
+                <h1>Total de envio de talões por Estado</h1>
+                <div class="ai-message">
+                    <strong>Indicador inteligente</strong>
+                    <p id="mensagem-ia">Carregando previsão preditiva e ranqueamento de prioridade...</p>
+                </div>
+            </div>
+
+            <div class="stock-chart-panel">
+                <canvas id="estoque-canvas" width="260" height="220"></canvas>
+                <div class="chart-legend">
+                    <span><i class="legend-dot low"></i>Estoque baixo</span>
+                    <span><i class="legend-dot ok"></i>Estoque OK</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="manager-table-section">
+            <div class="table-controls">
+                <h2>Lojas</h2>
+                <div class="controls-right">
+                    <label class="date-filter compact">
+                        Inicio
+                        <input type="date" id="data-inicial-gestor">
+                    </label>
+                    <label class="date-filter compact">
+                        Fim
+                        <input type="date" id="data-final-gestor">
+                    </label>
+                    <div class="search-wrapper">
+                        <span class="search-icon">⌕</span>
+                        <input type="text" id="busca-gestor" placeholder="Search">
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="filtro-status-gestor">
+                            <option value="">Filtrar por : status</option>
+                            <option value="Em trânsito">Em trânsito</option>
+                            <option value="Entregue">Entregue</option>
+                            <option value="Recebido">Recebido</option>
+                            <option value="Pendente">Pendente</option>
+                        </select>
+                    </div>
+                    <button id="btn-gerar-relatorio" class="btn-export-csv" type="button">Gerar relatorio</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="manager-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Data / hora</th>
+                            <th>remessa</th>
+                            <th>Loja</th>
+                            <th>Qnt.Enviada</th>
+                            <th>Recomendada</th>
+                            <th>Mínima</th>
+                            <th>Prioridade</th>
+                            <th>Divergência</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-gestor-corpo"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./gestor.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

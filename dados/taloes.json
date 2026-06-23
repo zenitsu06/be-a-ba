@@ -1,0 +1,96 @@
+{
+  "envios_taloes": [
+    {
+      "id_envio": "ENV-2026-006",
+      "cod_loja": "LJ01",
+      "loja_nome": "Filial Porto Alegre",
+      "loja_uf": "RS",
+      "matricula_usuario": "QQ1003",
+      "data_hora_envio": "2026-06-22 14:29:41",
+      "data_entrega_prevista": "2026-06-25",
+      "quantidade_enviada": 150,
+      "quantidade_recomendada": 100,
+      "quantidade_minima": 50,
+      "prioridade_ia": "Prioridade",
+      "status": "Recebido",
+      "insight_ia": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 100 talões (confiança 68%). Reposição imediata recomendada. | Prioridade de envio: Prioridade (score: 65/100). | ⚠ ALERTA BAIXO: Filial Porto Alegre (RS) — Estoque atual: 45 | Mínimo: 50 | Reposição urgente: 105 talões"
+    },
+    {
+      "id_envio": "ENV-2026-001",
+      "cod_loja": "LJ01",
+      "matricula_usuario": "QQ1001",
+      "data_hora_envio": "2026-06-15 14:30:00",
+      "data_entrega_prevista": "2026-06-18",
+      "quantidade_enviada": 100,
+      "status": "Em trânsito"
+    },
+    {
+      "id_envio": "ENV-2026-002",
+      "cod_loja": "LJ02",
+      "matricula_usuario": "QQ1002",
+      "data_hora_envio": "2026-06-16 09:15:00",
+      "data_entrega_prevista": "2026-06-17",
+      "quantidade_enviada": 50,
+      "status": "Entregue"
+    },
+    {
+      "id_envio": "ENV-2026-003",
+      "cod_loja": "LJ03",
+      "matricula_usuario": "QQ1001",
+      "data_hora_envio": "2026-03-10 10:00:00",
+      "data_entrega_prevista": "2026-03-13",
+      "quantidade_enviada": 3298,
+      "status": "Entregue"
+    },
+    {
+      "id_envio": "ENV-2026-004",
+      "cod_loja": "LJ04",
+      "matricula_usuario": "QQ1002",
+      "data_hora_envio": "2026-04-05 11:00:00",
+      "data_entrega_prevista": "2026-04-08",
+      "quantidade_enviada": 2000,
+      "status": "Entregue"
+    },
+    {
+      "id_envio": "ENV-2026-005",
+      "cod_loja": "LJ05",
+      "matricula_usuario": "QQ1001",
+      "data_hora_envio": "2026-05-22 16:20:00",
+      "data_entrega_prevista": "2026-05-25",
+      "quantidade_enviada": 1287,
+      "status": "Entregue"
+    }
+  ],
+  "recebimentos_taloes": [
+    {
+      "id_recebimento": "REC-2026-003",
+      "cod_loja": "LJ01",
+      "id_envio": "ENV-2026-006",
+      "matricula_usuario": "QQ1002",
+      "data_hora_recebimento": "2026-06-22 14:30:58",
+      "quantidade_recebida": 125,
+      "quantidade_divergencia": 25,
+      "observacao": ""
+    },
+    {
+      "id_recebimento": "REC-2026-001",
+      "cod_loja": "LJ02",
+      "id_envio": "ENV-2026-002",
+      "matricula_usuario": "QQ1002",
+      "data_hora_recebimento": "2026-06-17 10:00:00",
+      "quantidade_recebida": 50,
+      "quantidade_divergencia": 0,
+      "observacao": ""
+    },
+    {
+      "id_recebimento": "REC-2026-002",
+      "cod_loja": "LJ03",
+      "id_envio": "ENV-2026-003",
+      "matricula_usuario": "QQ1001",
+      "data_hora_recebimento": "2026-03-14 09:30:00",
+      "quantidade_recebida": 3290,
+      "quantidade_divergencia": 8,
+      "observacao": "8 talões danificados no transporte"
+    }
+  ]
+}

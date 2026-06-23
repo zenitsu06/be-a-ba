@@ -1,0 +1,77 @@
+{
+  "lojas": [
+    {
+      "codigo_loja": "LJ01",
+      "nome_da_loja": "Filial Porto Alegre",
+      "uf": "RS",
+      "data_cadastro": "2026-01-10",
+      "quantidade_minima": 50,
+      "quantidade_recomendada": 150,
+      "Quantidade atual": 170,
+      "quantidade_atual": 170
+    },
+    {
+      "codigo_loja": "LJ02",
+      "nome_da_loja": "Filial Chapecó",
+      "uf": "SC",
+      "data_cadastro": "2026-03-15",
+      "quantidade_minima": 40,
+      "quantidade_recomendada": 100,
+      "Quantidade atual": 80
+    },
+    {
+      "codigo_loja": "LJ03",
+      "nome_da_loja": "Filial São Paulo",
+      "uf": "SP",
+      "data_cadastro": "2026-04-02",
+      "quantidade_minima": 60,
+      "quantidade_recomendada": 200,
+      "Quantidade atual": 65
+    },
+    {
+      "codigo_loja": "LJ04",
+      "nome_da_loja": "Filial Paraná",
+      "uf": "PR",
+      "data_cadastro": "2026-04-18",
+      "quantidade_minima": 45,
+      "quantidade_recomendada": 120,
+      "Quantidade atual": 140
+    },
+    {
+      "codigo_loja": "LJ05",
+      "nome_da_loja": "Filial Mato Grosso do Sul",
+      "uf": "MS",
+      "data_cadastro": "2026-05-20",
+      "quantidade_minima": 30,
+      "quantidade_recomendada": 90,
+      "Quantidade atual": 180
+    }
+  ],
+  "estoque_lojas": [
+    {
+      "codigo_loja": "LJ01",
+      "quantidade_atual": 170,
+      "atualizado_em": "2026-06-22 14:31:06"
+    },
+    {
+      "codigo_loja": "LJ02",
+      "quantidade_atual": 120,
+      "atualizado_em": "2026-06-16 11:30:00"
+    },
+    {
+      "codigo_loja": "LJ03",
+      "quantidade_atual": 55,
+      "atualizado_em": "2026-06-16 12:15:00"
+    },
+    {
+      "codigo_loja": "LJ04",
+      "quantidade_atual": 150,
+      "atualizado_em": "2026-06-16 09:00:00"
+    },
+    {
+      "codigo_loja": "LJ05",
+      "quantidade_atual": 25,
+      "atualizado_em": "2026-06-16 14:00:00"
+    }
+  ]
+}

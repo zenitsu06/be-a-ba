@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários - Verdecard</title>
+    <link rel="stylesheet" href="./perfis.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="../administrador/dashboard.html" class="menu-item">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html"class="menu-item active">Gerenciar perfis</a>
+            <a href="../EnvioTaloes/envio.html" class="menu-item">Enviar Talões</a>
+            <a href="../gestor/relatorios.html" class="menu-item">Relatórios</a>
+            <a href="../Lojas/lojas.html" class="menu-item">Lojas</a> <br><br>
+            <p>Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        
+        <header class="admin-header">
+            <div class="header-title">
+                <h1>Gerenciar Perfis</h1>
+            </div>
+            <div class="header-right">
+                <span id="nome-admin">Administrador</span>
+                <div class="user-avatar"></div>
+            </div>
+        </header>
+
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <span class="card-label">Total de Funcionários</span>
+                <span id="total-funcionarios" class="card-number">0</span>
+            </div>
+            <div class="metric-card">
+                <span class="card-label">Usuários Ativos</span>
+                <span id="ativos-funcionarios" class="card-number text-green">0</span>
+            </div>
+            <div class="metric-card">
+                <span class="card-label">Usuários Inativos</span>
+                <span id="inativos-funcionarios" class="card-number text-red">0</span>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="table-controls">
+                <button id="btn-abrir-cadastro" class="btn-primary-green">+ Cadastrar Usuário</button>
+                
+                <div class="controls-right">
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="busca-usuario" placeholder="Buscar por nome ou ID...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Matrícula</th>
+                            <th>Nome</th>
+                            <th>Cargo</th>
+                            <th>Loja Vinculada</th>
+                            <th>Status</th>
+                            <th style="text-align: center;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-usuarios-corpo">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-cadastro">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btn-fechar-modal"><span>&times;</span></button>
+            <h2 id="modal-titulo">Cadastrar Novo Usuário</h2>
+            
+            <form id="form-cadastro-usuario">
+                <div class="form-group">
+                    <label>Matrícula (Automática)</label>
+                    <input type="text" id="cad-matricula" readonly class="bg-locked">
+                </div>
+
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="cad-nome" placeholder="Digite o nome completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label>E-mail Corporativo</label>
+                    <input type="email" id="cad-email" placeholder="exemplo@verdecard.com.br" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="cad-senha" placeholder="Digite a senha" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Cargo</label>
+                    <div class="select-filter-wrapper">
+                        <select id="cad-cargo" required>
+                            <option value="">Selecione o cargo...</option>
+                            <option value="administrador">Administrador</option>
+                            <option value="gestor">Gestor</option>
+                            <option value="lojista">Lojista</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" id="bloco-atribacoes">
+                    <label>Atribuições de Acesso (Telas do Menu)</label>
+                    <div class="checkbox-group-box">
+                        <label class="check-item">
+                            <input type="checkbox" value="dashboard" checked disabled> Dashboard Geral
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="atribuicao" value="gerenciar-perfis"> Gerenciar Usuários
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="atribuicao" value="enviar-taloes"> Envio de Talões
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="atribuicao" value="lojas"> Cadastrar e Ver Lojas
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Loja de Atuação</label>
+                    <div class="select-filter-wrapper">
+                        <select id="cad-loja" required>
+                            <option value="">Selecione a filial...</option>
+                            </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" id="btn-salvar-usuario" class="btn-submit-save">Concluir Cadastro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./perfis.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

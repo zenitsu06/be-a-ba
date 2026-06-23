@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojas - Verdecard</title>
+    <link rel="stylesheet" href="./lojas.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="../administrador/dashboard.html" class="menu-item">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html" class="menu-item">Gerenciar perfis</a>
+            <a href="../EnvioTaloes/envio.html" class="menu-item">Enviar Talões</a>
+            <a href="../gestor/relatorios.html" class="menu-item">Relatórios</a>
+            <a href="./lojas.html" class="menu-item active">Lojas</a> <br><br>
+            <p>Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="admin-header">
+            <div class="header-title">
+                <h1>Cadastro de Lojas</h1>
+            </div>
+            <div class="header-right">
+                <span id="nome-admin">Administrador</span>
+                <div class="user-avatar"></div>
+                <button id="btn-sair" class="btn-sair">Sair</button>
+            </div>
+        </header>
+
+        <section class="metrics-grid">
+            <div class="metric-card action-card">
+                <span class="card-label">Nova loja</span>
+                <button id="btn-abrir-cadastro" class="btn-primary-green">Cadastrar loja</button>
+            </div>
+
+            <div class="metric-card">
+                <span class="card-label">Total de lojas cadastradas</span>
+                <span id="total-lojas" class="card-number">0</span>
+            </div>
+
+            <div class="metric-card insight-card">
+                <span class="card-label">Indicador inteligente</span>
+                <p id="insight-ia">Carregando análise Python...</p>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="table-controls">
+                <h2>Lojas</h2>
+
+                <div class="controls-right">
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="busca-loja" placeholder="Buscar por código, nome ou UF...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="store-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nome da loja</th>
+                            <th>UF</th>
+                            <th>Funcionário</th>
+                            <th>Estoque minimo</th>
+                            <th>Recomendado</th>
+                            <th>Estoque inicial</th>
+                            <th>Data de cadastro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-lojas-corpo">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-cadastro">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btn-fechar-modal"><span>&times;</span></button>
+            <h2>Cadastrar loja</h2>
+
+            <form id="form-cadastro-loja">
+                <div class="form-group">
+                    <label>Código da loja</label>
+                    <input type="text" id="cad-codigo" placeholder="Ex: LJ06" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome da loja</label>
+                    <input type="text" id="cad-nome" placeholder="Ex: Filial Canoas" required>
+                </div>
+
+                <div class="form-group">
+                    <label>UF</label>
+                    <input type="text" id="cad-uf" placeholder="Ex: RS" maxlength="2" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Funcionário responsável</label>
+                    <div class="select-filter-wrapper">
+                        <select id="cad-funcionario">
+                            <option value="">Sem funcionário atribuído</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="stock-form-grid">
+                    <div class="form-group">
+                        <label>Estoque minimo</label>
+                        <input type="number" id="cad-estoque-minimo" min="0" value="30" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estoque recomendado</label>
+                        <input type="number" id="cad-estoque-recomendado" min="0" value="90" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estoque inicial</label>
+                        <input type="number" id="cad-estoque-inicial" min="0" value="0" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn-submit-save">Concluir cadastro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./lojas.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

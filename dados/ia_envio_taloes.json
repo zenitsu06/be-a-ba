@@ -1,0 +1,112 @@
+{
+  "gerado_em": "2026-06-22T14:31:06.601473",
+  "total_lojas": 5,
+  "resumo": {
+    "mensagem": "Análise concluída em 22/06/2026 14:31. 0 loja(s) em estado CRÍTICO, 2 em estoque BAIXO, 3 dentro do parâmetro. Prioridade máxima: Filial São Paulo (SP) com score 80/100.",
+    "lojas_criticas": 0,
+    "lojas_baixas": 2,
+    "lojas_ok": 3
+  },
+  "alertas": [
+    {
+      "codigo_loja": "LJ03",
+      "nome_loja": "Filial São Paulo",
+      "uf": "SP",
+      "estoque_atual": 55,
+      "quantidade_minima": 60,
+      "nivel": "BAIXO",
+      "mensagem": "⚠ ALERTA BAIXO: Filial São Paulo (SP) — Estoque atual: 55 | Mínimo: 60 | Reposição urgente: 145 talões"
+    },
+    {
+      "codigo_loja": "LJ05",
+      "nome_loja": "Filial Mato Grosso do Sul",
+      "uf": "MS",
+      "estoque_atual": 25,
+      "quantidade_minima": 30,
+      "nivel": "BAIXO",
+      "mensagem": "⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões"
+    }
+  ],
+  "analises": [
+    {
+      "codigo_loja": "LJ03",
+      "nome_loja": "Filial São Paulo",
+      "uf": "SP",
+      "estoque_atual": 55,
+      "quantidade_sugerida": 3298,
+      "quantidade_minima": 60,
+      "tendencia": "estável",
+      "confianca": 68,
+      "dias_ate_minimo": null,
+      "prioridade": "Prioridade",
+      "classe_css": "alta",
+      "score_prioridade": 80,
+      "alerta_nivel": "BAIXO",
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 3298 talões (confiança 68%). Reposição imediata recomendada. | Prioridade de envio: Prioridade (score: 80/100). | ⚠ ALERTA BAIXO: Filial São Paulo (SP) — Estoque atual: 55 | Mínimo: 60 | Reposição urgente: 145 talões"
+    },
+    {
+      "codigo_loja": "LJ05",
+      "nome_loja": "Filial Mato Grosso do Sul",
+      "uf": "MS",
+      "estoque_atual": 25,
+      "quantidade_sugerida": 1287,
+      "quantidade_minima": 30,
+      "tendencia": "estável",
+      "confianca": 68,
+      "dias_ate_minimo": null,
+      "prioridade": "Prioridade",
+      "classe_css": "alta",
+      "score_prioridade": 80,
+      "alerta_nivel": "BAIXO",
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 1287 talões (confiança 68%). Reposição imediata recomendada. | Prioridade de envio: Prioridade (score: 80/100). | ⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões"
+    },
+    {
+      "codigo_loja": "LJ04",
+      "nome_loja": "Filial Paraná",
+      "uf": "PR",
+      "estoque_atual": 150,
+      "quantidade_sugerida": 2000,
+      "quantidade_minima": 45,
+      "tendencia": "estável",
+      "confianca": 68,
+      "dias_ate_minimo": 1,
+      "prioridade": "baixa",
+      "classe_css": "baixa",
+      "score_prioridade": 20,
+      "alerta_nivel": null,
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 2000 talões (confiança 68%). Estoque mínimo atingido em ~1 dias. | Prioridade de envio: baixa (score: 20/100)."
+    },
+    {
+      "codigo_loja": "LJ01",
+      "nome_loja": "Filial Porto Alegre",
+      "uf": "RS",
+      "estoque_atual": 170,
+      "quantidade_sugerida": 125,
+      "quantidade_minima": 50,
+      "tendencia": "estável",
+      "confianca": 76,
+      "dias_ate_minimo": 28,
+      "prioridade": "baixa",
+      "classe_css": "baixa",
+      "score_prioridade": 10,
+      "alerta_nivel": null,
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 125 talões (confiança 76%). Estoque mínimo atingido em ~28 dias. | Prioridade de envio: baixa (score: 10/100)."
+    },
+    {
+      "codigo_loja": "LJ02",
+      "nome_loja": "Filial Chapecó",
+      "uf": "SC",
+      "estoque_atual": 120,
+      "quantidade_sugerida": 50,
+      "quantidade_minima": 40,
+      "tendencia": "estável",
+      "confianca": 68,
+      "dias_ate_minimo": 48,
+      "prioridade": "baixa",
+      "classe_css": "baixa",
+      "score_prioridade": 10,
+      "alerta_nivel": null,
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 50 talões (confiança 68%). Estoque mínimo atingido em ~48 dias. | Prioridade de envio: baixa (score: 10/100)."
+    }
+  ]
+}

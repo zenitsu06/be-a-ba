@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrador - Verdecard</title>
+    <link rel="stylesheet" href="./dashboard.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="./dashboard.html" class="menu-item active">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html"class="menu-item">Gerenciar perfis</a>
+            <a href="../EnvioTaloes/envio.html" class="menu-item">Enviar Talões</a>
+            <a href="../gestor/relatorios.html" class="menu-item">Relatórios</a>
+            <a href="../Lojas/lojas.html" class="menu-item">Lojas</a> <br><br>
+            <p>Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        
+        <header class="admin-header">
+            <div class="header-title">
+                <h1>Visão Geral</h1>
+            </div>
+            <div class="header-right">
+                <span id="nome-admin">Administrador</span>
+                <div class="user-avatar"></div>
+                <button id="btn-sair" class="btn-sair">Sair</button>
+            </div>
+        </header>
+
+        <section class="cards-grid">
+            <div class="uf-card" id="card-RS">
+                <span class="uf-title">Rio Grande do Sul</span>
+                <span class="uf-value" id="val-RS">0</span>
+                <span class="uf-subtitle">Valor mensal</span>
+            </div>
+            <div class="uf-card" id="card-SC">
+                <span class="uf-title">Santa Catarina</span>
+                <span class="uf-value" id="val-SC">0</span>
+                <span class="uf-subtitle">Valor mensal</span>
+            </div>
+            <div class="uf-card" id="card-PR">
+                <span class="uf-title">Paraná</span>
+                <span class="uf-value" id="val-PR">0</span>
+                <span class="uf-subtitle">Valor mensal</span>
+            </div>
+            <div class="uf-card" id="card-MS">
+                <span class="uf-title">Mato Grosso do Sul</span>
+                <span class="uf-value" id="val-MS">0</span>
+                <span class="uf-subtitle">Valor mensal</span>
+            </div>
+            <div class="uf-card" id="card-SP">
+                <span class="uf-title">São Paulo</span>
+                <span class="uf-value" id="val-SP">0</span>
+                <span class="uf-subtitle">Valor mensal</span>
+            </div>
+        </section>
+
+        <section class="charts-grid">
+            
+            <div class="chart-container main-chart-box">
+                <h2>Total de entrega de talões por mês </h2>
+                <div style="position: relative; height:300px; width:100%">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="chart-container pie-chart-box">
+                    <h2>Situação de Estoque Geral</h2>
+                    <div style="position: relative; height:200px; width:100%">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="risk-container">
+                    <h2>Lojas com risco</h2>
+                    <ul class="risk-list" id="lista-risco">
+                        <li class="empty-state">Analisando dados...</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./dashboard.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

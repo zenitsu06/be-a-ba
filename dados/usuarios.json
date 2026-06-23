@@ -1,0 +1,55 @@
+{
+   "usuarios": [
+    {
+      "nome": "Allan Crasso",
+      "matricula": "QQ1001",
+      "email": "allan.crasso@verdecard.com.br",
+      "senha": "senha123",
+      "cargo": "administrador",
+      "loja": "Matriz Central",
+      "lojaNome": "Matriz Central",
+      "lojaUf": "",
+      "status": "Ativo",
+      "atribacoes": ["dashboard", "gerenciar-perfis", "enviar-taloes", "lojas"]
+    },
+    {
+      "nome": "Nathaly Silva",
+      "matricula": "QQ1002",
+      "email": "nathalysilva@verdecard.com.br",
+      "senha": "123456",
+      "cargo": "lojista",
+      "loja": "Filial Porto Alegre - RS (Cod: LJ01)",
+      "lojaNome": "Filial Porto Alegre",
+      "lojaUf": "RS",
+      "status": "Ativo",
+      "atribacoes": ["dashboard"]
+    },
+    {
+      "nome": "Kaua Sousa",
+      "matricula": "QQ1003",
+      "email": "kauasousa@verdecard.com.br",
+      "senha": "123456",
+      "cargo": "administrador",
+      "loja": "Matriz Central",
+      "lojaNome": "Matriz Central",
+      "lojaUf": "",
+      "status": "Ativo",
+      "atribacoes": ["dashboard", "gerenciar-perfis", "enviar-taloes", "lojas"]
+    },
+    {
+      "nome": "Maria Gestora",
+      "matricula": "QQ1004",
+      "email": "maria.gestora@verdecard.com.br",
+      "senha": "123456",
+      "cargo": "gestor",
+      "loja": "Matriz Central",
+      "lojaNome": "Matriz Central",
+      "lojaUf": "",
+      "status": "Ativo",
+      "atribacoes": ["dashboard", "enviar-taloes", "lojas"]
+    }],
+    "perfis": [
+    { "id_perfil": 1, "nome_perfil": "Administrador", "descricao": "Acesso completo ao sistema" },
+    { "id_perfil": 2, "nome_perfil": "Gerente de Estoque", "descricao": "Acesso ao estoque das lojas" },
+    { "id_perfil": 3, "nome_perfil": "Usuário", "descricao": "Acesso a envio e recebimento de talões" }] 
+}

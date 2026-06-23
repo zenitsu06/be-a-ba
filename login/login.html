@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-sidebar">
+                <h2>Bem vindo!</h2>
+                <p>Caso tenha esquecido sua senha, clique no botão abaixo e receba o código por email.</p>
+                <button type="button" class="btn-outline" id="btn-resetar">Resetar</button>
+            </div>
+            
+            <div class="login-content">
+                <h2>Acessar o Sistema</h2>
+                <p class="subtitle">Use sua matrícula Verdecard para entrar:</p>
+                
+                <form id="form-login">
+                    <div class="input-group">
+                        <span class="input-icon"></span>
+                        <input type="text" id="login-matricula" placeholder="Matrícula (Ex: QQ1001)" required autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-icon"></span>
+                        <input type="password" id="login-senha" placeholder="Senha" required>
+                    </div>
+                    <button type="submit" class="btn-submit">ENTRAR</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-reset">
+        
+        <div class="modal-card active" id="passo-1">
+            <button class="modal-close">&times;</button>
+            <div class="modal-body-green">
+                <label>Digite abaixo a sua matrícula</label>
+                <div class="modal-row">
+                    <input type="text" id="reset-matricula" placeholder="Matrícula">
+                    <button type="button" class="btn-modal-action" id="btn-passo1">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-card" id="passo-2">
+            <button class="modal-close"><span>&times;</span></button>
+            <div class="modal-body-green">
+                <label id="lbl-email-destino">Código enviado para o seguinte email, exemplo@verdecard.com.br</label>
+                <div class="modal-row">
+                    <input type="text" id="reset-codigo" placeholder="Código">
+                    <button type="button" class="btn-modal-action" id="btn-passo2">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-card" id="passo-3">
+            <button class="modal-close">&times;</button>
+            <div class="modal-body-green block-layout">
+                <label class="title-step3">Altere sua senha</label>
+                
+                <div class="modal-field-group">
+                    <span class="field-label">Nova senha</span>
+                    <input type="password" id="reset-nova-senha" placeholder="nova senha">
+                </div>
+
+                <div class="modal-field-group">
+                    <span class="field-label">Confirmar senha</span>
+                    <input type="password" id="reset-confirmar-senha" placeholder="">
+                    <button type="button" class="btn-modal-action btn-absolute" id="btn-passo3">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

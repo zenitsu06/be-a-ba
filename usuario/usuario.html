@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Lojista - Recebimento de Talões</title>
+    <link rel="stylesheet" href="./usuario.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="header-right">
+            <span id="nome-usuario-header">Nome do usuário</span>
+            <div class="user-avatar"></div>
+            <button id="btn-sair" class="btn-sair">Sair</button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        
+        <section class="top-cards-section">
+            <div class="action-card">
+                <h3>Receber pedido</h3>
+                <button id="btn-abrir-recebimento" class="btn-primary-outline">Acessar</button>
+            </div>
+
+            <div class="info-card">
+                <div class="info-left">
+                    <p><strong>Loja:</strong> <span id="info-loja-nome">-</span></p>
+                    <p><strong>UF:</strong> <span id="info-loja-uf">-</span></p>
+                </div>
+                <div class="info-right-stock">
+                    <div class="stock-box">
+                        <span class="stock-title">Estoque atual de talões</span>
+                        <div class="stock-value-row">
+                            <span id="total-estoque" class="stock-number">0</span>
+                            <button id="btn-editar-estoque" class="btn-stock-edit" type="button">Editar</button>
+                        </div>
+                    </div>
+                    <div class="situation-box">
+                        <span class="situation-title">Situação</span>
+                        <span id="label-situacao" class="status-badge badge-neutral">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <div class="table-controls">
+                <h2>Atualizações</h2>
+                
+                <div class="controls-right">
+                    <button id="btn-exportar" class="btn-export">Exportar</button>
+                    
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="input-busca" placeholder="Search">
+                    </div>
+
+                    <div class="select-wrapper">
+                        <select id="filtro-status">
+                            <option value="">Filtrar por : status</option>
+                            <option value="recebido">Recebido</option>
+                            <option value="pendente">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="5%"></th>
+                            <th>Data / hora</th>
+                            <th>remessa</th>
+                            <th>Lojista</th>
+                            <th>Email</th>
+                            <th>Qnt.Recebida</th>
+                            <th>Divergência</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <button class="page-arrow">&lt;</button>
+                <div class="page-numbers" id="paginacao-numeros">
+                    <span class="page-num active">1</span>
+                </div>
+                <button class="page-arrow">&gt;</button>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modal-recebimento">
+        <div class="modal-card-green">
+            <button class="modal-close-btn" id="btn-fechar-modal"><span>&times;</span></button>
+            
+            <form id="form-recebimento">
+                <div class="modal-grid">
+                    
+                    <div class="modal-col">
+                        <div class="form-group">
+                            <label>Data/hora</label>
+                            <input type="text" id="rec-data-hora" readonly>
+                        </div>
+
+                        <div class="store-details-box">
+                            <h3>Loja</h3>
+                            <p><strong>Loja:</strong> <span id="rec-loja-nome">-</span></p>
+                            <hr>
+                            <p><strong>UF:</strong> <span id="rec-loja-uf">-</span></p>
+                            <hr>
+                            <p><strong>Cód:</strong> <span id="rec-loja-cod">-</span></p>
+                        </div>
+                    </div>
+
+                    <div class="modal-col">
+                        <div class="form-group">
+                            <label>Funcionário</label>
+                            <input type="text" id="rec-funcionario-matricula" placeholder="Matrícula:" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Remessa</label>
+                            <input type="text" id="rec-codigo-remessa" placeholder="Código:" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Quantidade de talões</label>
+                            <input type="number" id="rec-qnt-enviados" placeholder="Enviados:" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Recebidos</label>
+                            <input type="number" id="rec-qnt-recebidos" placeholder="Recebidos:" required min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Observações</label>
+                    <textarea id="rec-observacoes" placeholder="Digite uma observação sobre o recebimento"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn-concluir">Concluir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./usuario.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Gestor de Estoque</title>
+    <link rel="stylesheet" href="./gestor.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+    <aside class="sidebar admin-sidebar report-sidebar" id="sidebar-admin">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+
+        <nav class="sidebar-menu">
+            <a href="../administrador/dashboard.html" class="menu-item">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html" class="menu-item">Gerenciar perfis</a>
+            <a href="../EnvioTaloes/envio.html" class="menu-item">Enviar Talões</a>
+            <a href="./relatorios.html" class="menu-item active">Relatórios</a>
+            <a href="../Lojas/lojas.html" class="menu-item">Lojas</a>
+
+            <br><br>
+            <p>Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <aside class="manager-sidebar report-sidebar" id="sidebar-gestor">
+        <div class="profile-block">
+            <div class="profile-avatar"></div>
+            <p>Olá <span id="nome-gestor-sidebar">Gestor</span></p>
+        </div>
+
+        <nav class="manager-nav">
+            <a href="./dashboard.html" class="manager-link">Dashboard</a>
+            <a href="./relatorios.html" class="manager-link active">Relatórios</a>
+        </nav>
+
+        <nav class="manager-nav secondary">
+            <strong>Outros</strong>
+            <a href="#" class="manager-link">Configurações</a>
+            <a href="#" class="manager-link">Conta</a>
+            <a href="#" class="manager-link">Ajuda</a>
+        </nav>
+
+        <button id="btn-sair-gestor" class="manager-logout">Sair</button>
+    </aside>
+
+    <main class="manager-content">
+        <div class="manager-topbar"></div>
+
+        <section class="report-header">
+            <h1>Relatórios de remessas</h1>
+            <div class="report-controls">
+                <div class="search-wrapper">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="busca-relatorio" placeholder="Search">
+                </div>
+
+                <label class="date-filter">
+                    Data inicial
+                    <input type="date" id="data-inicial">
+                </label>
+
+                <label class="date-filter">
+                    Data final
+                    <input type="date" id="data-final">
+                </label>
+
+                <button id="btn-exportar-csv" class="btn-export-csv">Exportar CSV</button>
+                <button id="btn-enviar-admin" class="btn-export-csv" type="button">Enviar para admin</button>
+            </div>
+        </section>
+
+        <section class="manager-table-section">
+            <div class="table-wrapper">
+                <table class="manager-table">
+                    <thead>
+                        <tr>
+                            <th id="col-nome-relatorio">Nome</th>
+                            <th>Data / hora</th>
+                            <th>remessa</th>
+                            <th>Loja</th>
+                            <th>Qnt. enviada</th>
+                            <th>Recomendada</th>
+                            <th>Mínima</th>
+                            <th>Prioridade</th>
+                            <th>Divergência</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-relatorios-corpo"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="./relatorios.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>
