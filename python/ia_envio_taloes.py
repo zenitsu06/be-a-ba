@@ -16,6 +16,7 @@
 
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 import random
 
@@ -30,6 +31,109 @@ SAIDA_PATH  = os.path.join(BASE_DIR, '..', 'dados', 'ia_envio_taloes.json')
 def carregar_json(caminho):
     with open(caminho, 'r', encoding='utf-8') as f:
         return json.load(f)
+
+
+def valor_deterministico(codigo, minimo, maximo):
+    base = sum(ord(char) for char in str(codigo))
+    return minimo + (base % (maximo - minimo + 1))
+
+
+def simular_taxa_conversao(loja, envios, recebimentos):
+    """
+    Simula a taxa historica de conversao em cartoes para o prototipo.
+    A taxa usa o codigo da loja como semente para manter resultados estaveis.
+    """
+    cod = loja['codigo_loja']
+    envios_loja = [e for e in envios if e.get('cod_loja') == cod]
+    recebimentos_loja = [r for r in recebimentos if r.get('cod_loja') == cod]
+    taloes_recebidos = sum(int(r.get('quantidade_recebida', 0) or 0) for r in recebimentos_loja)
+    taloes_enviados = sum(int(e.get('quantidade_enviada', 0) or 0) for e in envios_loja)
+    base = valor_deterministico(cod, 7, 24)
+    ajuste = min(len(envios_loja) * 1.3, 6) - min(len(recebimentos_loja) * 0.4, 2)
+    taxa = round(max(3, min(32, base + ajuste)), 1)
+    cartoes_estimados = int((taloes_recebidos or taloes_enviados or loja['quantidade_recomendada']) * taxa / 100)
+
+    return {
+        'taxa_percentual': taxa,
+        'cartoes_estimados_30d': cartoes_estimados,
+        'base_calculo': 'simulada',
+        'mensagem': (
+            f"Taxa de conversao historica simulada: {taxa}% "
+            f"(~{cartoes_estimados} cartoes estimados)."
+        )
+    }
+
+
+def gerar_notificacoes_workplace(alertas):
+    notificacoes = []
+    agora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    for alerta in alertas:
+        notificacoes.append({
+            'canal': 'Workplace',
+            'destino': 'Grupo Gestao de Estoque',
+            'codigo_loja': alerta['codigo_loja'],
+            'loja': alerta['nome_loja'],
+            'uf': alerta['uf'],
+            'nivel': alerta['nivel'],
+            'mensagem': alerta['mensagem'],
+            'status': 'simulado',
+            'enviado_em': agora
+        })
+    return notificacoes
+
+
+def detectar_anomalias_recebimento(lojas, envios, recebimentos, analises):
+    anomalias = []
+    recebidos_por_loja = {}
+    envios_por_id = {envio.get('id_envio'): envio for envio in envios}
+
+    for recebimento in recebimentos:
+        cod = recebimento.get('cod_loja') or envios_por_id.get(recebimento.get('id_envio'), {}).get('cod_loja')
+        if not cod:
+            continue
+        recebidos_por_loja[cod] = recebidos_por_loja.get(cod, 0) + int(recebimento.get('quantidade_recebida', 0) or 0)
+
+        divergencia = int(recebimento.get('quantidade_divergencia', 0) or 0)
+        enviado = int(envios_por_id.get(recebimento.get('id_envio'), {}).get('quantidade_enviada', 0) or 0)
+        if enviado and divergencia / max(enviado, 1) >= 0.1:
+            anomalias.append({
+                'tipo': 'divergencia_recebimento',
+                'codigo_loja': cod,
+                'loja': _nome_loja(cod, lojas),
+                'severidade': 'media',
+                'descricao': (
+                    f"Remessa {recebimento.get('id_envio')} teve divergencia de "
+                    f"{divergencia} taloes ({round(divergencia / enviado * 100, 1)}%)."
+                ),
+                'recomendacao': 'Conferir nota de envio e registrar justificativa operacional.'
+            })
+
+    volumes = list(recebidos_por_loja.values())
+    media_recebida = sum(volumes) / len(volumes) if volumes else 0
+    analises_por_loja = {a['codigo_loja']: a for a in analises}
+
+    for cod, total in recebidos_por_loja.items():
+        analise = analises_por_loja.get(cod, {})
+        taxa = float(analise.get('taxa_conversao_historica', 0) or 0)
+        if media_recebida and total > media_recebida * 1.4 and taxa < 10:
+            anomalias.append({
+                'tipo': 'volume_alto_baixa_conversao',
+                'codigo_loja': cod,
+                'loja': _nome_loja(cod, lojas),
+                'severidade': 'alta',
+                'descricao': (
+                    f"Loja recebeu {total} taloes, acima da media simulada "
+                    f"({round(media_recebida, 1)}), mas converte apenas {taxa}%."
+                ),
+                'recomendacao': 'Revisar prioridade de reposicao e orientar a loja antes de novo envio.'
+            })
+
+    return anomalias
+
+
+def _nome_loja(codigo, lojas):
+    loja = next((item for item in lojas if item.get('codigo_loja') == codigo), None)
+    return loja.get('nome_da_loja') if loja else codigo
 
 
 # ============================================================
@@ -162,7 +266,7 @@ def prever_estoque(loja, estoque_lojas, envios):
 # ============================================================
 #  RF12-IA — RANQUEAMENTO INTELIGENTE DE PRIORIDADE
 # ============================================================
-def calcular_prioridade(loja, estoque_lojas, previsao):
+def calcular_prioridade(loja, estoque_lojas, previsao, taxa_conversao=0):
     """
     Combina múltiplos fatores para gerar um score de prioridade:
     - Nível crítico do estoque atual
@@ -211,6 +315,15 @@ def calcular_prioridade(loja, estoque_lojas, previsao):
     elif dias is not None and dias <= 15:
         score += 5
 
+    if taxa_conversao >= 18:
+        score += 15
+    elif taxa_conversao >= 12:
+        score += 8
+    elif taxa_conversao < 5:
+        score -= 5
+
+    score = max(0, min(score, 100))
+
     # Classificar
     if score >= 60:
         prioridade = 'Prioridade'
@@ -232,13 +345,14 @@ def calcular_prioridade(loja, estoque_lojas, previsao):
 # ============================================================
 #  GERADOR DO JSON DE SAÍDA
 # ============================================================
-def gerar_json_ia(lojas, estoque_lojas, envios):
+def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
     analises  = []
     alertas   = gerar_alertas(lojas, estoque_lojas)
 
     for loja in lojas:
         previsao    = prever_estoque(loja, estoque_lojas, envios)
-        rank        = calcular_prioridade(loja, estoque_lojas, previsao)
+        conversao   = simular_taxa_conversao(loja, envios, recebimentos)
+        rank        = calcular_prioridade(loja, estoque_lojas, previsao, conversao['taxa_percentual'])
         alerta_loja = next(
             (a for a in alertas if a['codigo_loja'] == loja['codigo_loja']), None
         )
@@ -256,9 +370,13 @@ def gerar_json_ia(lojas, estoque_lojas, envios):
             'prioridade':        rank['prioridade'],
             'classe_css':        rank['classe_css'],
             'score_prioridade':  rank['score'],
+            'taxa_conversao_historica': conversao['taxa_percentual'],
+            'cartoes_estimados_30d': conversao['cartoes_estimados_30d'],
+            'conversao_base_calculo': conversao['base_calculo'],
             'alerta_nivel':      alerta_loja['nivel'] if alerta_loja else None,
             'mensagem': (
                 f"{previsao['mensagem_previsao']} | "
+                f"{conversao['mensagem']} | "
                 f"Prioridade de envio: {rank['prioridade']} (score: {rank['score']}/100)."
                 + (f" | {alerta_loja['mensagem']}" if alerta_loja else '')
             )
@@ -266,6 +384,8 @@ def gerar_json_ia(lojas, estoque_lojas, envios):
 
     # Ordenar por score (maior prioridade primeiro)
     analises.sort(key=lambda x: x['score_prioridade'], reverse=True)
+    anomalias = detectar_anomalias_recebimento(lojas, envios, recebimentos, analises)
+    notificacoes_workplace = gerar_notificacoes_workplace(alertas)
 
     # Lojas em alerta
     lojas_criticas = [a for a in analises if a['alerta_nivel'] == 'CRITICO']
@@ -289,9 +409,13 @@ def gerar_json_ia(lojas, estoque_lojas, envios):
             'mensagem':        resumo_msg,
             'lojas_criticas':  len(lojas_criticas),
             'lojas_baixas':    len(lojas_baixas),
-            'lojas_ok':        len(lojas_ok)
+            'lojas_ok':        len(lojas_ok),
+            'anomalias':       len(anomalias),
+            'notificacoes_workplace': len(notificacoes_workplace)
         },
         'alertas': alertas,
+        'anomalias_recebimento': anomalias,
+        'notificacoes_workplace': notificacoes_workplace,
         'analises': analises
     }
 
@@ -300,6 +424,9 @@ def gerar_json_ia(lojas, estoque_lojas, envios):
 
 # ── MAIN ─────────────────────────────────────────────────────
 if __name__ == '__main__':
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
     print("=== IA Envio Talões — Iniciando análise ===\n")
 
     dados_lojas  = carregar_json(LOJAS_PATH)
@@ -308,12 +435,14 @@ if __name__ == '__main__':
     lojas         = dados_lojas.get('lojas', [])
     estoque_lojas = dados_lojas.get('estoque_lojas', [])
     envios        = dados_taloes.get('envios_taloes', [])
+    recebimentos  = dados_taloes.get('recebimentos_taloes', [])
 
     print(f"Lojas carregadas:  {len(lojas)}")
     print(f"Envios carregados: {len(envios)}")
+    print(f"Recebimentos carregados: {len(recebimentos)}")
     print(f"Registros de estoque: {len(estoque_lojas)}\n")
 
-    resultado = gerar_json_ia(lojas, estoque_lojas, envios)
+    resultado = gerar_json_ia(lojas, estoque_lojas, envios, recebimentos)
 
     with open(SAIDA_PATH, 'w', encoding='utf-8') as f:
         json.dump(resultado, f, ensure_ascii=False, indent=2)
@@ -324,6 +453,12 @@ if __name__ == '__main__':
     print("\n=== ALERTAS RF11 ===")
     for a in resultado['alertas']:
         print(f"  {a['mensagem']}")
+    print("\n=== NOTIFICACOES WORKPLACE SIMULADAS ===")
+    for n in resultado['notificacoes_workplace']:
+        print(f"  [{n['status']}] {n['destino']} - {n['mensagem']}")
+    print("\n=== ANOMALIAS DE RECEBIMENTO ===")
+    for a in resultado['anomalias_recebimento']:
+        print(f"  [{a['severidade']}] {a['loja']} - {a['descricao']}")
     print("\n=== RANKING RF12-IA ===")
     for i, analise in enumerate(resultado['analises'], 1):
         print(f"  {i}. [{analise['prioridade'].upper()}] {analise['nome_loja']} ({analise['uf']}) "

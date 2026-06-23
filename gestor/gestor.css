@@ -259,7 +259,8 @@ body.admin-report .manager-content {
 
 .search-wrapper input,
 .select-wrapper select,
-.date-filter input {
+.date-filter input,
+.date-filter select {
     height: 34px;
     border: none;
     border-radius: 8px;
@@ -376,6 +377,11 @@ body.admin-report .manager-content {
 }
 
 .date-filter input {
+    padding: 0 10px;
+}
+
+.date-filter select {
+    min-width: 210px;
     padding: 0 10px;
 }
 

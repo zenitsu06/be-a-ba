@@ -10,12 +10,99 @@ let recebimentosTaloes = [];
 let analisesIA = [];
 let relatoriosEnviados = [];
 let relatorioGerado = null;
+let relatorioSelecionadoLinhas = [];
+
+const COLUNAS_RELATORIOS = {
+    gestor: [
+        ['data_hora_envio', 'Data / hora'],
+        ['id_envio', 'Remessa'],
+        ['lojaTexto', 'Loja'],
+        ['quantidade_enviada', 'Qnt. enviada'],
+        ['quantidade_recomendada', 'Recomendada'],
+        ['quantidade_minima', 'Minima'],
+        ['prioridade_ia', 'Prioridade'],
+        ['divergencia', 'Divergencia']
+    ],
+    relatorios_enviados: [
+        ['nome', 'Nome'],
+        ['data_hora_envio', 'Data / hora'],
+        ['id_envio', 'Remessa'],
+        ['lojaTexto', 'Loja'],
+        ['quantidade_enviada', 'Qnt. enviada'],
+        ['quantidade_recomendada', 'Recomendada'],
+        ['quantidade_minima', 'Minima'],
+        ['prioridade_ia', 'Prioridade'],
+        ['divergencia', 'Divergencia']
+    ],
+    usuarios: [
+        ['matricula', 'Matricula'],
+        ['nome', 'Nome'],
+        ['email', 'E-mail'],
+        ['cargo', 'Cargo'],
+        ['loja', 'Loja'],
+        ['status', 'Status']
+    ],
+    perfis: [
+        ['nome_perfil', 'Perfil'],
+        ['cargo', 'Cargo'],
+        ['descricao', 'Descricao'],
+        ['atribacoes', 'Atribuicoes']
+    ],
+    manutencao_taloes: [
+        ['data_hora', 'Data / hora'],
+        ['remessa', 'Remessa'],
+        ['loja', 'Loja'],
+        ['quantidade_enviada', 'Qnt. enviada'],
+        ['status', 'Status'],
+        ['prioridade', 'Prioridade'],
+        ['atualizado_em', 'Atualizado em']
+    ],
+    gestao_recebimento: [
+        ['data_hora_recebimento', 'Recebido em'],
+        ['recebimento', 'Recebimento'],
+        ['remessa', 'Remessa'],
+        ['loja', 'Loja'],
+        ['quantidade_recebida', 'Qnt. recebida'],
+        ['quantidade_divergencia', 'Divergencia'],
+        ['observacao', 'Observacao']
+    ],
+    gestao_estoque: [
+        ['codigo_loja', 'Cod. loja'],
+        ['loja', 'Loja'],
+        ['uf', 'UF'],
+        ['quantidade_atual', 'Atual'],
+        ['quantidade_minima', 'Minima'],
+        ['quantidade_recomendada', 'Recomendada'],
+        ['prioridade', 'Prioridade'],
+        ['taxa_conversao_historica', 'Conversao simulada'],
+        ['anomalias', 'Anomalias']
+    ],
+    anomalias: [
+        ['tipo', 'Tipo'],
+        ['codigo_loja', 'Cod. loja'],
+        ['loja', 'Loja'],
+        ['severidade', 'Severidade'],
+        ['descricao', 'Descricao'],
+        ['recomendacao', 'Recomendacao']
+    ],
+    notificacoes_workplace: [
+        ['canal', 'Canal'],
+        ['destino', 'Destino'],
+        ['codigo_loja', 'Cod. loja'],
+        ['loja', 'Loja'],
+        ['nivel', 'Nivel'],
+        ['status', 'Status'],
+        ['mensagem', 'Mensagem'],
+        ['enviado_em', 'Enviado em']
+    ]
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     iniciarRelatorios();
     await carregarDadosRelatorios();
-    renderizarRelatorios();
     inicializarEventosRelatorios();
+    await carregarRelatorioSelecionado(obterTipoRelatorioAtual());
+    renderizarRelatorios();
 });
 
 function iniciarRelatorios() {
@@ -34,6 +121,8 @@ function configurarSidebarPorPerfil() {
     const sidebarGestor = document.getElementById('sidebar-gestor');
     const colNome = document.getElementById('col-nome-relatorio');
     const btnEnviar = document.getElementById('btn-enviar-admin');
+    const tipoWrapper = document.getElementById('tipo-relatorio-wrapper');
+    const tipoSelect = document.getElementById('tipo-relatorio');
 
     if (usuarioLogado.cargo !== 'gestor') {
         document.body.classList.add('admin-report');
@@ -42,6 +131,8 @@ function configurarSidebarPorPerfil() {
         sidebarGestor.style.display = 'none';
         colNome.style.display = '';
         btnEnviar.style.display = 'none';
+        tipoWrapper.style.display = 'flex';
+        tipoSelect.value = 'relatorios_enviados';
         return;
     }
 
@@ -51,6 +142,8 @@ function configurarSidebarPorPerfil() {
     sidebarGestor.style.display = 'flex';
     colNome.style.display = 'none';
     btnEnviar.style.display = '';
+    tipoWrapper.style.display = 'none';
+    tipoSelect.value = 'gestor';
     document.getElementById('nome-gestor-sidebar').innerText = usuarioLogado.nome || 'Gestor';
 }
 
@@ -96,53 +189,149 @@ async function carregarDadosRelatorios() {
     }
 }
 
+async function carregarRelatorioSelecionado(tipo) {
+    if (usuarioLogado.cargo !== 'administrador' && tipo !== 'gestor') {
+        tipo = 'gestor';
+    }
+
+    const respostaApi = await apiGet(`/api/relatorios/${tipo}`);
+    if (respostaApi?.linhas) {
+        relatorioSelecionadoLinhas = respostaApi.linhas.map(linha => normalizarLinhaRelatorio(tipo, linha));
+        return;
+    }
+
+    relatorioSelecionadoLinhas = await montarLinhasRelatorioLocal(tipo);
+}
+
+async function montarLinhasRelatorioLocal(tipo) {
+    if (tipo === 'gestor') return montarLinhasRelatorio();
+    if (tipo === 'relatorios_enviados') return relatoriosEnviados.map(linha => normalizarLinhaRelatorio(tipo, linha));
+
+    if (tipo === 'usuarios' || tipo === 'perfis') {
+        const locais = JSON.parse(localStorage.getItem('usuariosJsonAtualizado') || 'null');
+        const dados = locais || await fetchJson('../dados/usuarios.json', { usuarios: [], perfis: [] });
+        return tipo === 'usuarios'
+            ? (dados.usuarios || [])
+            : (dados.perfis || []).map(perfil => ({
+                ...perfil,
+                atribacoes: (perfil.atribacoes || perfil.atribuicoes || []).join(', ')
+            }));
+    }
+
+    if (tipo === 'manutencao_taloes') return montarLinhasRelatorio().map(linha => ({
+        data_hora: linha.data_hora_envio,
+        remessa: linha.id_envio,
+        loja: linha.lojaTexto,
+        quantidade_enviada: linha.quantidade_enviada,
+        status: linha.status,
+        prioridade: linha.prioridade_ia,
+        atualizado_em: linha.atualizado_em || ''
+    }));
+
+    if (tipo === 'gestao_recebimento') {
+        const enviosPorId = Object.fromEntries(enviosTaloes.map(envio => [envio.id_envio, envio]));
+        return recebimentosTaloes.map(recebimento => {
+            const envio = enviosPorId[recebimento.id_envio] || {};
+            return {
+                data_hora_recebimento: recebimento.data_hora_recebimento,
+                recebimento: recebimento.id_recebimento,
+                remessa: recebimento.id_envio,
+                loja: envio.loja_nome || recebimento.cod_loja,
+                quantidade_recebida: recebimento.quantidade_recebida,
+                quantidade_divergencia: recebimento.quantidade_divergencia,
+                observacao: recebimento.observacao
+            };
+        });
+    }
+
+    if (tipo === 'gestao_estoque') {
+        return lojas.map(loja => {
+            const analise = analisesIA.find(item => item.codigo_loja === loja.codigo_loja) || {};
+            return {
+                codigo_loja: loja.codigo_loja,
+                loja: loja.nome_da_loja,
+                uf: loja.uf,
+                quantidade_atual: loja.quantidade_atual ?? loja['Quantidade atual'],
+                quantidade_minima: loja.quantidade_minima,
+                quantidade_recomendada: loja.quantidade_recomendada,
+                prioridade: analise.prioridade || '-',
+                taxa_conversao_historica: analise.taxa_conversao_historica || '-',
+                anomalias: '-'
+            };
+        });
+    }
+
+    if (tipo === 'anomalias') {
+        const dadosIA = await apiGet('/api/ia/envio-taloes') || await fetchJson('../dados/ia_envio_taloes.json', {});
+        return dadosIA.anomalias_recebimento || [];
+    }
+
+    if (tipo === 'notificacoes_workplace') {
+        const dadosIA = await apiGet('/api/ia/envio-taloes') || await fetchJson('../dados/ia_envio_taloes.json', {});
+        return dadosIA.notificacoes_workplace || [];
+    }
+
+    return [];
+}
+
+function obterTipoRelatorioAtual() {
+    if (usuarioLogado?.cargo !== 'administrador') return 'gestor';
+    return document.getElementById('tipo-relatorio')?.value || 'relatorios_enviados';
+}
+
+function normalizarLinhaRelatorio(tipo, linha) {
+    if (tipo === 'gestor' || tipo === 'relatorios_enviados') {
+        return normalizarRelatorioEnviado(linha);
+    }
+    return linha;
+}
+
 function inicializarEventosRelatorios() {
     document.getElementById('busca-relatorio').addEventListener('input', renderizarRelatorios);
     document.getElementById('data-inicial').addEventListener('change', renderizarRelatorios);
     document.getElementById('data-final').addEventListener('change', renderizarRelatorios);
+    document.getElementById('tipo-relatorio').addEventListener('change', async (event) => {
+        await carregarRelatorioSelecionado(event.target.value);
+        renderizarRelatorios();
+    });
     document.getElementById('btn-exportar-csv').addEventListener('click', exportarCsvPython);
     document.getElementById('btn-enviar-admin').addEventListener('click', enviarRelatorioParaAdmin);
 }
 
 function renderizarRelatorios() {
     const corpo = document.getElementById('tabela-relatorios-corpo');
-    const linhas = usuarioLogado.cargo === 'administrador'
-        ? filtrarLinhas(relatoriosEnviados.map(normalizarRelatorioEnviado))
-        : filtrarLinhas(montarLinhasRelatorio());
+    const tipo = obterTipoRelatorioAtual();
+    const colunas = COLUNAS_RELATORIOS[tipo] || COLUNAS_RELATORIOS.gestor;
+    const linhas = filtrarLinhas(relatorioSelecionadoLinhas);
 
+    renderizarCabecalhoRelatorio(colunas);
     corpo.innerHTML = '';
 
     linhas.forEach(linha => {
         const tr = document.createElement('tr');
-        tr.innerHTML = usuarioLogado.cargo === 'administrador'
-            ? `
-                <td>${linha.nome || '-'}</td>
-                <td>${formatarDataTabela(linha.data_hora_envio || linha.data_hora || linha.enviado_em)}</td>
-                <td><strong>${linha.id_envio || linha.remessa || '-'}</strong></td>
-                <td>${linha.lojaTexto || linha.loja || '-'}</td>
-                <td>${linha.quantidade_enviada ?? '-'}</td>
-                <td>${linha.quantidade_recomendada ?? linha.recomendada ?? '-'}</td>
-                <td>${linha.quantidade_minima ?? linha.minima ?? '-'}</td>
-                <td>${linha.prioridade_ia ?? linha.prioridade ?? '-'}</td>
-                <td>${linha.divergencia ?? '-'}</td>
-            `
-            : `
-                <td>${formatarDataTabela(linha.data_hora_envio)}</td>
-                <td><strong>${linha.id_envio}</strong></td>
-                <td>${linha.lojaTexto}</td>
-                <td>${linha.quantidade_enviada}</td>
-                <td>${linha.quantidade_recomendada}</td>
-                <td>${linha.quantidade_minima}</td>
-                <td>${linha.prioridade_ia}</td>
-                <td>${linha.divergencia}</td>
-            `;
+        tr.innerHTML = colunas
+            .map(([campo]) => `<td>${formatarValorRelatorio(linha[campo], campo)}</td>`)
+            .join('');
         corpo.appendChild(tr);
     });
 
     if (!linhas.length) {
-        const colspan = usuarioLogado.cargo === 'administrador' ? 9 : 8;
-        corpo.innerHTML = `<tr><td colspan="${colspan}">Nenhum registro encontrado.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="${colunas.length}">Nenhum registro encontrado.</td></tr>`;
     }
+}
+
+function renderizarCabecalhoRelatorio(colunas) {
+    const cabecalho = document.getElementById('cabecalho-relatorios');
+    cabecalho.innerHTML = colunas.map(([, titulo]) => `<th>${titulo}</th>`).join('');
+}
+
+function formatarValorRelatorio(valor, campo) {
+    if (Array.isArray(valor)) return valor.join(', ');
+    if (valor === null || valor === undefined || valor === '') return '-';
+    if (campo.includes('data') || campo.includes('enviado') || campo.includes('atualizado')) {
+        return formatarDataTabela(valor);
+    }
+    return valor;
 }
 
 function montarLinhasRelatorio() {
@@ -201,8 +390,15 @@ function filtrarLinhas(linhas) {
     const dataFinal = document.getElementById('data-final').value;
 
     return linhas.filter(linha => {
-        const texto = `${linha.nome || ''} ${linha.id_envio || ''} ${linha.remessa || ''} ${linha.lojaTexto || ''} ${linha.loja || ''} ${linha.data_hora_envio || ''}`.toLowerCase();
-        const data = obterDataISO(linha.data_hora_envio || linha.data_hora || linha.enviado_em);
+        const texto = Object.values(linha).join(' ').toLowerCase();
+        const data = obterDataISO(
+            linha.data_hora_envio ||
+            linha.data_hora ||
+            linha.data_hora_recebimento ||
+            linha.enviado_em ||
+            linha.atualizado_em ||
+            linha.data_cadastro
+        );
         return texto.includes(termo)
             && (!dataInicial || data >= dataInicial)
             && (!dataFinal || data <= dataFinal);
@@ -247,7 +443,7 @@ async function enviarRelatorioParaAdmin() {
 }
 
 async function exportarCsvPython() {
-    const tipo = usuarioLogado.cargo === 'administrador' ? 'relatorios_enviados' : 'gestor';
+    const tipo = obterTipoRelatorioAtual();
     const params = new URLSearchParams({
         busca: document.getElementById('busca-relatorio').value.trim(),
         data_inicial: document.getElementById('data-inicial').value,

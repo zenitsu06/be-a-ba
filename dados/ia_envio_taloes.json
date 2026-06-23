@@ -1,11 +1,13 @@
 {
-  "gerado_em": "2026-06-22T14:31:06.601473",
+  "gerado_em": "2026-06-23T17:52:09.219953",
   "total_lojas": 5,
   "resumo": {
-    "mensagem": "Análise concluída em 22/06/2026 14:31. 0 loja(s) em estado CRÍTICO, 2 em estoque BAIXO, 3 dentro do parâmetro. Prioridade máxima: Filial São Paulo (SP) com score 80/100.",
+    "mensagem": "Análise concluída em 23/06/2026 17:52. 0 loja(s) em estado CRÍTICO, 2 em estoque BAIXO, 3 dentro do parâmetro. Prioridade máxima: Filial São Paulo (SP) com score 95/100.",
     "lojas_criticas": 0,
     "lojas_baixas": 2,
-    "lojas_ok": 3
+    "lojas_ok": 3,
+    "anomalias": 1,
+    "notificacoes_workplace": 2
   },
   "alertas": [
     {
@@ -27,6 +29,40 @@
       "mensagem": "⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões"
     }
   ],
+  "anomalias_recebimento": [
+    {
+      "tipo": "divergencia_recebimento",
+      "codigo_loja": "LJ01",
+      "loja": "Filial Porto Alegre",
+      "severidade": "media",
+      "descricao": "Remessa ENV-2026-006 teve divergencia de 25 taloes (16.7%).",
+      "recomendacao": "Conferir nota de envio e registrar justificativa operacional."
+    }
+  ],
+  "notificacoes_workplace": [
+    {
+      "canal": "Workplace",
+      "destino": "Grupo Gestao de Estoque",
+      "codigo_loja": "LJ03",
+      "loja": "Filial São Paulo",
+      "uf": "SP",
+      "nivel": "BAIXO",
+      "mensagem": "⚠ ALERTA BAIXO: Filial São Paulo (SP) — Estoque atual: 55 | Mínimo: 60 | Reposição urgente: 145 talões",
+      "status": "simulado",
+      "enviado_em": "2026-06-23 17:52:09"
+    },
+    {
+      "canal": "Workplace",
+      "destino": "Grupo Gestao de Estoque",
+      "codigo_loja": "LJ05",
+      "loja": "Filial Mato Grosso do Sul",
+      "uf": "MS",
+      "nivel": "BAIXO",
+      "mensagem": "⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões",
+      "status": "simulado",
+      "enviado_em": "2026-06-23 17:52:09"
+    }
+  ],
   "analises": [
     {
       "codigo_loja": "LJ03",
@@ -40,9 +76,12 @@
       "dias_ate_minimo": null,
       "prioridade": "Prioridade",
       "classe_css": "alta",
-      "score_prioridade": 80,
+      "score_prioridade": 95,
+      "taxa_conversao_historica": 22.9,
+      "cartoes_estimados_30d": 753,
+      "conversao_base_calculo": "simulada",
       "alerta_nivel": "BAIXO",
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 3298 talões (confiança 68%). Reposição imediata recomendada. | Prioridade de envio: Prioridade (score: 80/100). | ⚠ ALERTA BAIXO: Filial São Paulo (SP) — Estoque atual: 55 | Mínimo: 60 | Reposição urgente: 145 talões"
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 3298 talões (confiança 68%). Reposição imediata recomendada. | Taxa de conversao historica simulada: 22.9% (~753 cartoes estimados). | Prioridade de envio: Prioridade (score: 95/100). | ⚠ ALERTA BAIXO: Filial São Paulo (SP) — Estoque atual: 55 | Mínimo: 60 | Reposição urgente: 145 talões"
     },
     {
       "codigo_loja": "LJ05",
@@ -56,9 +95,12 @@
       "dias_ate_minimo": null,
       "prioridade": "Prioridade",
       "classe_css": "alta",
-      "score_prioridade": 80,
+      "score_prioridade": 95,
+      "taxa_conversao_historica": 25.3,
+      "cartoes_estimados_30d": 325,
+      "conversao_base_calculo": "simulada",
       "alerta_nivel": "BAIXO",
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 1287 talões (confiança 68%). Reposição imediata recomendada. | Prioridade de envio: Prioridade (score: 80/100). | ⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões"
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 1287 talões (confiança 68%). Reposição imediata recomendada. | Taxa de conversao historica simulada: 25.3% (~325 cartoes estimados). | Prioridade de envio: Prioridade (score: 95/100). | ⚠ ALERTA BAIXO: Filial Mato Grosso do Sul (MS) — Estoque atual: 25 | Mínimo: 30 | Reposição urgente: 65 talões"
     },
     {
       "codigo_loja": "LJ04",
@@ -70,11 +112,14 @@
       "tendencia": "estável",
       "confianca": 68,
       "dias_ate_minimo": 1,
-      "prioridade": "baixa",
-      "classe_css": "baixa",
-      "score_prioridade": 20,
+      "prioridade": "média",
+      "classe_css": "media",
+      "score_prioridade": 35,
+      "taxa_conversao_historica": 24.3,
+      "cartoes_estimados_30d": 486,
+      "conversao_base_calculo": "simulada",
       "alerta_nivel": null,
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 2000 talões (confiança 68%). Estoque mínimo atingido em ~1 dias. | Prioridade de envio: baixa (score: 20/100)."
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 2000 talões (confiança 68%). Estoque mínimo atingido em ~1 dias. | Taxa de conversao historica simulada: 24.3% (~486 cartoes estimados). | Prioridade de envio: média (score: 35/100)."
     },
     {
       "codigo_loja": "LJ01",
@@ -88,9 +133,12 @@
       "dias_ate_minimo": 28,
       "prioridade": "baixa",
       "classe_css": "baixa",
-      "score_prioridade": 10,
+      "score_prioridade": 25,
+      "taxa_conversao_historica": 22.2,
+      "cartoes_estimados_30d": 27,
+      "conversao_base_calculo": "simulada",
       "alerta_nivel": null,
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 125 talões (confiança 76%). Estoque mínimo atingido em ~28 dias. | Prioridade de envio: baixa (score: 10/100)."
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 125 talões (confiança 76%). Estoque mínimo atingido em ~28 dias. | Taxa de conversao historica simulada: 22.2% (~27 cartoes estimados). | Prioridade de envio: baixa (score: 25/100)."
     },
     {
       "codigo_loja": "LJ02",
@@ -104,9 +152,12 @@
       "dias_ate_minimo": 48,
       "prioridade": "baixa",
       "classe_css": "baixa",
-      "score_prioridade": 10,
+      "score_prioridade": 25,
+      "taxa_conversao_historica": 21.9,
+      "cartoes_estimados_30d": 10,
+      "conversao_base_calculo": "simulada",
       "alerta_nivel": null,
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 50 talões (confiança 68%). Estoque mínimo atingido em ~48 dias. | Prioridade de envio: baixa (score: 10/100)."
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 50 talões (confiança 68%). Estoque mínimo atingido em ~48 dias. | Taxa de conversao historica simulada: 21.9% (~10 cartoes estimados). | Prioridade de envio: baixa (score: 25/100)."
     }
   ]
 }

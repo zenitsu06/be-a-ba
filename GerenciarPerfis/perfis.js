@@ -24,6 +24,7 @@ const PERFIS_PADRAO = [
         atribacoes: ['dashboard']
     }
 ];
+const PERFIS_BASE_CARGOS = new Set(['administrador', 'gestor', 'lojista']);
 
 let lojasRegistradas = [];
 let listaUsuarios = [];
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderizarTabelaUsuarios();
     popularSelectCargos();
     popularSelectLojas();
+    renderizarListaPerfis();
     inicializarEventosModal();
 });
 
@@ -261,8 +263,67 @@ function popularSelectCargos() {
     }
 }
 
+function renderizarListaPerfis() {
+    const lista = document.getElementById('lista-perfis-existentes');
+    if (!lista) return;
+
+    lista.innerHTML = '';
+    perfisUsuarios.forEach(perfil => {
+        const emUso = perfilEmUso(perfil.cargo);
+        const protegido = PERFIS_BASE_CARGOS.has(perfil.cargo);
+        const botaoDesabilitado = emUso || protegido;
+        const motivo = protegido
+            ? 'Perfil base'
+            : emUso
+                ? 'Em uso por usuario'
+                : 'Pode ser excluido';
+
+        const row = document.createElement('div');
+        row.className = 'profile-existing-row';
+        row.innerHTML = `
+            <div>
+                <strong>${perfil.nome_perfil}</strong>
+                <small>${perfil.cargo} - ${motivo}</small>
+            </div>
+            <button class="btn-profile-delete" type="button" ${botaoDesabilitado ? 'disabled' : ''} onclick="excluirPerfil('${perfil.cargo}')">
+                Excluir
+            </button>
+        `;
+        lista.appendChild(row);
+    });
+}
+
+function perfilEmUso(cargo) {
+    return listaUsuarios.some(user => normalizarCargo(user.cargo) === cargo);
+}
+
 function buscarPerfilPorCargo(cargo) {
     return perfisUsuarios.find(perfil => perfil.cargo === cargo) || null;
+}
+
+async function excluirPerfil(cargo) {
+    const perfil = buscarPerfilPorCargo(cargo);
+    if (!perfil) return;
+    if (PERFIS_BASE_CARGOS.has(cargo)) {
+        alert('Perfis base do sistema nao podem ser excluidos.');
+        return;
+    }
+    if (perfilEmUso(cargo)) {
+        alert('Esse perfil esta vinculado a usuarios. Altere o cargo desses usuarios antes de excluir.');
+        return;
+    }
+    if (!confirm(`Excluir o perfil "${perfil.nome_perfil}"?`)) return;
+
+    const respostaApi = await apiPost('/api/perfis/excluir', { cargo });
+    if (respostaApi === null) {
+        console.warn('Backend indisponivel. Excluindo perfil apenas localmente.');
+    }
+
+    perfisUsuarios = perfisUsuarios.filter(item => item.cargo !== cargo);
+    salvarUsuariosJson();
+    popularSelectCargos();
+    renderizarListaPerfis();
+    alert('Perfil excluido com sucesso.');
 }
 
 async function alternarStatusUsuario(matricula) {
@@ -326,6 +387,7 @@ function inicializarEventosModal() {
 
     btnAbrirPerfil.addEventListener('click', () => {
         prepararFormularioPerfil();
+        renderizarListaPerfis();
         modalPerfil.style.display = 'flex';
     });
 
@@ -430,6 +492,7 @@ async function salvarPerfilDoFormulario() {
 
     salvarUsuariosJson();
     popularSelectCargos();
+    renderizarListaPerfis();
     fecharModalPerfil();
     alert('Perfil criado com sucesso.');
 }

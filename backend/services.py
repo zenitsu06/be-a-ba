@@ -39,6 +39,9 @@ class BackendError(Exception):
         self.status = status
 
 
+CORE_PROFILE_SLUGS = {"administrador", "gestor", "lojista"}
+
+
 def _usuarios_data() -> dict[str, Any]:
     data = read_json(USUARIOS_PATH, {"usuarios": [], "perfis": []})
     data.setdefault("usuarios", [])
@@ -100,6 +103,30 @@ def save_profile(payload: dict[str, Any]) -> dict[str, Any]:
     perfis.append(profile)
     write_json(USUARIOS_PATH, data)
     return profile
+
+
+def delete_profile(cargo: str) -> dict[str, Any]:
+    cargo_slug = _normalize_profile_slug(cargo)
+    if not cargo_slug:
+        raise BackendError("Cargo do perfil e obrigatorio.")
+    if cargo_slug in CORE_PROFILE_SLUGS:
+        raise BackendError("Perfis base do sistema nao podem ser excluidos.", 409)
+
+    data = _usuarios_data()
+    if any(_normalize_profile_slug(user.get("cargo")) == cargo_slug for user in data["usuarios"]):
+        raise BackendError("Perfil vinculado a usuario. Altere o cargo dos usuarios antes de excluir.", 409)
+
+    before = len(data["perfis"])
+    data["perfis"] = [
+        perfil
+        for perfil in data["perfis"]
+        if _normalize_profile_slug(perfil.get("cargo") or perfil.get("nome_perfil")) != cargo_slug
+    ]
+    if len(data["perfis"]) == before:
+        raise BackendError("Perfil nao encontrado.", 404)
+
+    write_json(USUARIOS_PATH, data)
+    return {"cargo": cargo_slug, "excluido": True}
 
 
 def _normalize_profile_slug(value: Any) -> str:
@@ -590,7 +617,24 @@ def run_ai_analysis() -> dict[str, Any]:
 
 
 def read_ai_analysis() -> dict[str, Any]:
-    return read_json(IA_ENVIO_PATH, {"resumo": {}, "alertas": [], "analises": []})
+    return read_json(
+        IA_ENVIO_PATH,
+        {
+            "resumo": {},
+            "alertas": [],
+            "analises": [],
+            "anomalias_recebimento": [],
+            "notificacoes_workplace": [],
+        },
+    )
+
+
+def list_workplace_notifications() -> list[dict[str, Any]]:
+    return read_ai_analysis().get("notificacoes_workplace", [])
+
+
+def list_anomaly_report() -> list[dict[str, Any]]:
+    return read_ai_analysis().get("anomalias_recebimento", [])
 
 
 def answer_chatbot(question: str) -> dict[str, Any]:
@@ -686,22 +730,127 @@ def list_manager_report() -> list[dict[str, Any]]:
     return rows
 
 
-def export_report(report_type: str, filters: dict[str, str] | None = None) -> Path:
-    reports = {
-        "usuarios": list_users,
+def list_profile_report() -> list[dict[str, Any]]:
+    return [
+        {
+            **perfil,
+            "atribacoes": ", ".join(perfil.get("atribacoes") or perfil.get("atribuicoes") or []),
+        }
+        for perfil in list_profiles()
+    ]
+
+
+def list_user_report() -> list[dict[str, Any]]:
+    return [
+        {
+            key: value
+            for key, value in user.items()
+            if key != "senha"
+        }
+        for user in list_users()
+    ]
+
+
+def list_maintenance_report() -> list[dict[str, Any]]:
+    rows = []
+    for envio in list_shipments():
+        rows.append(
+            {
+                "data_hora": envio.get("data_hora_envio", ""),
+                "remessa": envio.get("id_envio", ""),
+                "loja": envio.get("loja_nome") or envio.get("cod_loja", ""),
+                "cod_loja": envio.get("cod_loja", ""),
+                "quantidade_enviada": envio.get("quantidade_enviada", ""),
+                "quantidade_recomendada": envio.get("quantidade_recomendada", ""),
+                "quantidade_minima": envio.get("quantidade_minima", ""),
+                "status": envio.get("status", ""),
+                "data_entrega_prevista": envio.get("data_entrega_prevista", ""),
+                "prioridade": envio.get("prioridade_ia", ""),
+                "atualizado_em": envio.get("atualizado_em", ""),
+                "insight_ia": envio.get("insight_ia", ""),
+            }
+        )
+    return rows
+
+
+def list_receipt_management_report() -> list[dict[str, Any]]:
+    shipments = {item.get("id_envio"): item for item in list_shipments()}
+    rows = []
+    for receipt in list_receipts():
+        shipment = shipments.get(receipt.get("id_envio"), {})
+        rows.append(
+            {
+                "data_hora_recebimento": receipt.get("data_hora_recebimento", ""),
+                "recebimento": receipt.get("id_recebimento", ""),
+                "remessa": receipt.get("id_envio", ""),
+                "cod_loja": receipt.get("cod_loja") or shipment.get("cod_loja", ""),
+                "loja": shipment.get("loja_nome") or receipt.get("cod_loja", ""),
+                "quantidade_enviada": shipment.get("quantidade_enviada", ""),
+                "quantidade_recebida": receipt.get("quantidade_recebida", ""),
+                "quantidade_divergencia": receipt.get("quantidade_divergencia", ""),
+                "observacao": receipt.get("observacao", ""),
+            }
+        )
+    return rows
+
+
+def list_inventory_management_report() -> list[dict[str, Any]]:
+    inventory = {item.get("codigo_loja"): item for item in list_inventory()}
+    ai_by_store = {item.get("codigo_loja"): item for item in read_ai_analysis().get("analises", [])}
+    anomaly_by_store: dict[str, list[str]] = {}
+    for anomaly in list_anomaly_report():
+        anomaly_by_store.setdefault(str(anomaly.get("codigo_loja", "")), []).append(str(anomaly.get("tipo", "")))
+
+    rows = []
+    for store in list_stores():
+        code = store.get("codigo_loja", "")
+        stock = inventory.get(code, {})
+        ai = ai_by_store.get(code, {})
+        rows.append(
+            {
+                "codigo_loja": code,
+                "loja": store.get("nome_da_loja", ""),
+                "uf": store.get("uf", ""),
+                "quantidade_atual": stock.get("quantidade_atual", store.get("Quantidade atual", "")),
+                "quantidade_minima": store.get("quantidade_minima", ""),
+                "quantidade_recomendada": store.get("quantidade_recomendada", ""),
+                "prioridade": ai.get("prioridade", ""),
+                "score_prioridade": ai.get("score_prioridade", ""),
+                "taxa_conversao_historica": ai.get("taxa_conversao_historica", ""),
+                "dias_ate_minimo": ai.get("dias_ate_minimo", ""),
+                "anomalias": ", ".join(filter(None, anomaly_by_store.get(code, []))),
+                "atualizado_em": stock.get("atualizado_em", ""),
+            }
+        )
+    return rows
+
+
+def report_rows(report_type: str, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    reports: dict[str, Any] = {
+        "usuarios": list_user_report,
+        "perfis": list_profile_report,
         "lojas": list_stores,
         "envios": list_shipments,
         "recebimentos": list_receipts,
         "estoque": list_inventory,
         "gestor": list_manager_report,
+        "manutencao_taloes": list_maintenance_report,
+        "gestao_recebimento": list_receipt_management_report,
+        "gestao_estoque": list_inventory_management_report,
+        "anomalias": list_anomaly_report,
+        "notificacoes_workplace": list_workplace_notifications,
         "relatorios_enviados": list_sent_reports,
     }
     if report_type not in reports:
         raise BackendError("Relatorio invalido.", 404)
 
     rows = reports[report_type]()
-    if report_type == "gestor":
-        rows = filter_manager_report(rows, filters or {})
+    rows = filter_report_rows(rows, filters or {})
+    return rows
+
+
+def export_report(report_type: str, filters: dict[str, str] | None = None) -> Path:
+    rows = report_rows(report_type, filters)
     RELATORIOS_DIR.mkdir(parents=True, exist_ok=True)
     output = RELATORIOS_DIR / f"{report_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
@@ -717,15 +866,15 @@ def export_report(report_type: str, filters: dict[str, str] | None = None) -> Pa
     return output
 
 
-def filter_manager_report(rows: list[dict[str, Any]], filters: dict[str, str]) -> list[dict[str, Any]]:
+def filter_report_rows(rows: list[dict[str, Any]], filters: dict[str, str]) -> list[dict[str, Any]]:
     search = filters.get("busca", "").strip().lower()
     start = filters.get("data_inicial", "").strip()
     end = filters.get("data_final", "").strip()
 
     filtered = []
     for row in rows:
-        text = f"{row.get('data_hora', '')} {row.get('remessa', '')} {row.get('loja', '')}".lower()
-        date = str(row.get("data_hora", "")).split(" ")[0]
+        text = " ".join(str(value) for value in row.values()).lower()
+        date = _row_date(row)
         if search and search not in text:
             continue
         if start and date < start:
@@ -735,3 +884,18 @@ def filter_manager_report(rows: list[dict[str, Any]], filters: dict[str, str]) -
         filtered.append(row)
 
     return filtered
+
+
+def _row_date(row: dict[str, Any]) -> str:
+    for key in (
+        "data_hora",
+        "data_hora_envio",
+        "data_hora_recebimento",
+        "enviado_em",
+        "atualizado_em",
+        "data_cadastro",
+    ):
+        value = str(row.get(key, "") or "")
+        if value:
+            return value.split(" ")[0]
+    return ""

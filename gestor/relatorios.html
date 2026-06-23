@@ -71,6 +71,20 @@
                     <input type="date" id="data-final">
                 </label>
 
+                <label class="date-filter report-type-filter" id="tipo-relatorio-wrapper">
+                    Tipo
+                    <select id="tipo-relatorio">
+                        <option value="relatorios_enviados">Relatorios enviados</option>
+                        <option value="usuarios">Usuarios cadastrados</option>
+                        <option value="perfis">Perfis de usuarios</option>
+                        <option value="manutencao_taloes">Manutencao de taloes</option>
+                        <option value="gestao_recebimento">Gestao de recebimento</option>
+                        <option value="gestao_estoque">Gestao do estoque</option>
+                        <option value="anomalias">Anomalias detectadas</option>
+                        <option value="notificacoes_workplace">Notificacoes Workplace</option>
+                    </select>
+                </label>
+
                 <button id="btn-exportar-csv" class="btn-export-csv">Exportar CSV</button>
                 <button id="btn-enviar-admin" class="btn-export-csv" type="button">Enviar para admin</button>
             </div>
@@ -80,7 +94,7 @@
             <div class="table-wrapper">
                 <table class="manager-table">
                     <thead>
-                        <tr>
+                        <tr id="cabecalho-relatorios">
                             <th id="col-nome-relatorio">Nome</th>
                             <th>Data / hora</th>
                             <th>remessa</th>

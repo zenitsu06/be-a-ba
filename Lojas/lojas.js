@@ -201,6 +201,9 @@ function formatarResumoIA(dadosIA) {
     }
     linhas.push(`${resumo.lojas_criticas || 0} loja(s) em estado CRÍTICO, ${resumo.lojas_baixas || 0} em estoque BAIXO, ${resumo.lojas_ok || 0} dentro do parâmetro.`);
 
+    linhas.push(`${resumo.notificacoes_workplace || 0} notificacao(oes) Workplace simulada(s) para lojas em alerta.`);
+    linhas.push(`${resumo.anomalias || 0} anomalia(s) de recebimento detectada(s).`);
+
     if (prioridadeMaxima) {
         linhas.push("");
         linhas.push(`Prioridade máxima: ${prioridadeMaxima.nome_loja} (${prioridadeMaxima.uf}) com score ${prioridadeMaxima.score_prioridade}/100.`);

@@ -12,7 +12,9 @@ try:
         authenticate,
         create_receipt,
         create_shipment,
+        delete_profile,
         export_report,
+        list_anomaly_report,
         list_inventory,
         list_profiles,
         list_receipts,
@@ -20,7 +22,9 @@ try:
         list_shipments,
         list_stores,
         list_users,
+        list_workplace_notifications,
         read_ai_analysis,
+        report_rows,
         run_ai_analysis,
         save_profile,
         save_store,
@@ -36,7 +40,9 @@ except ImportError:
         authenticate,
         create_receipt,
         create_shipment,
+        delete_profile,
         export_report,
+        list_anomaly_report,
         list_inventory,
         list_profiles,
         list_receipts,
@@ -44,7 +50,9 @@ except ImportError:
         list_shipments,
         list_stores,
         list_users,
+        list_workplace_notifications,
         read_ai_analysis,
+        report_rows,
         run_ai_analysis,
         save_profile,
         save_store,
@@ -92,6 +100,8 @@ GET_ROUTES: dict[str, GetHandler] = {
     "/api/envios": lambda _query: json_result({"envios_taloes": list_shipments()}),
     "/api/recebimentos": lambda _query: json_result({"recebimentos_taloes": list_receipts()}),
     "/api/ia/envio-taloes": lambda _query: json_result(read_ai_analysis()),
+    "/api/anomalias": lambda _query: json_result({"anomalias": list_anomaly_report()}),
+    "/api/notificacoes/workplace": lambda _query: json_result({"notificacoes": list_workplace_notifications()}),
     "/api/relatorios/enviados": lambda _query: json_result({"relatorios": list_sent_reports()}),
 }
 
@@ -100,6 +110,7 @@ POST_ROUTES: dict[str, PostHandler] = {
     "/api/login": lambda body: json_result({"usuario": authenticate(body.get("matricula", ""), body.get("senha", ""))}),
     "/api/usuarios": lambda body: json_result({"usuario": save_user(body)}, HTTPStatus.CREATED),
     "/api/perfis": lambda body: json_result({"perfil": save_profile(body)}, HTTPStatus.CREATED),
+    "/api/perfis/excluir": lambda body: json_result({"perfil": delete_profile(body.get("cargo", ""))}),
     "/api/usuarios/status": lambda body: json_result(
         {"usuario": set_user_status(body.get("matricula", ""), body.get("status", ""))}
     ),
@@ -116,12 +127,19 @@ POST_ROUTES: dict[str, PostHandler] = {
 
 
 def dispatch_get(path: str, query: dict[str, str]) -> RouteResult | None:
+    handler = GET_ROUTES.get(path)
+    if handler:
+        return handler(query)
+
     if path.startswith("/api/relatorios/") and path.endswith(".csv"):
         report_type = unquote(Path(path).stem)
         return csv_result(export_report(report_type, query))
 
-    handler = GET_ROUTES.get(path)
-    return handler(query) if handler else None
+    if path.startswith("/api/relatorios/"):
+        report_type = unquote(Path(path).name)
+        return json_result({"tipo": report_type, "linhas": report_rows(report_type, query)})
+
+    return None
 
 
 def dispatch_post(path: str, body: dict[str, Any]) -> RouteResult | None:
