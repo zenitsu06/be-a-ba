@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function iniciarRelatorios() {
     usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-    if (!usuarioLogado || !['gestor', 'administrador'].includes(usuarioLogado.cargo)) {
+    if (!usuarioLogado || !window.OfertePermissions?.has('relatorios')) {
         window.location.href = '../login/login.html';
         return;
     }
@@ -35,7 +35,7 @@ function configurarSidebarPorPerfil() {
     const colNome = document.getElementById('col-nome-relatorio');
     const btnEnviar = document.getElementById('btn-enviar-admin');
 
-    if (usuarioLogado.cargo === 'administrador') {
+    if (usuarioLogado.cargo !== 'gestor') {
         document.body.classList.add('admin-report');
         document.body.classList.remove('manager-report');
         sidebarAdmin.style.display = 'flex';

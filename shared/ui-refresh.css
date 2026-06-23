@@ -322,9 +322,8 @@ textarea:focus {
 }
 
 .login-sidebar {
-    background:
-        linear-gradient(150deg, rgba(0, 127, 98, 0.96), rgba(0, 184, 140, 0.92)),
-        var(--vc-green) !important;
+    background: #1f5713 !important;
+    background: linear-gradient(346deg, rgba(31, 87, 19, 1) 0%, rgba(87, 199, 133, 1) 76%, rgba(237, 221, 83, 1) 100%) !important;
     position: relative;
 }
 

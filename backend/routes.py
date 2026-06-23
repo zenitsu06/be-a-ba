@@ -22,6 +22,7 @@ try:
         list_users,
         read_ai_analysis,
         run_ai_analysis,
+        save_profile,
         save_store,
         save_user,
         set_user_status,
@@ -45,6 +46,7 @@ except ImportError:
         list_users,
         read_ai_analysis,
         run_ai_analysis,
+        save_profile,
         save_store,
         save_user,
         set_user_status,
@@ -97,6 +99,7 @@ GET_ROUTES: dict[str, GetHandler] = {
 POST_ROUTES: dict[str, PostHandler] = {
     "/api/login": lambda body: json_result({"usuario": authenticate(body.get("matricula", ""), body.get("senha", ""))}),
     "/api/usuarios": lambda body: json_result({"usuario": save_user(body)}, HTTPStatus.CREATED),
+    "/api/perfis": lambda body: json_result({"perfil": save_profile(body)}, HTTPStatus.CREATED),
     "/api/usuarios/status": lambda body: json_result(
         {"usuario": set_user_status(body.get("matricula", ""), body.get("status", ""))}
     ),

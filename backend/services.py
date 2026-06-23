@@ -68,6 +68,58 @@ def list_profiles() -> list[dict[str, Any]]:
     return _usuarios_data()["perfis"]
 
 
+def save_profile(payload: dict[str, Any]) -> dict[str, Any]:
+    nome = str(payload.get("nome_perfil") or payload.get("nome") or "").strip()
+    cargo = _normalize_profile_slug(payload.get("cargo") or nome)
+    atribacoes = payload.get("atribacoes") or payload.get("atribuicoes") or ["dashboard"]
+
+    if not nome or not cargo:
+        raise BackendError("Nome e cargo do perfil sao obrigatorios.")
+    if not isinstance(atribacoes, list):
+        raise BackendError("Atribuicoes do perfil devem ser uma lista.")
+
+    data = _usuarios_data()
+    perfis = data["perfis"]
+    next_id = max((int(perfil.get("id_perfil", 0) or 0) for perfil in perfis), default=0) + 1
+    profile = {
+        "id_perfil": int(payload.get("id_perfil") or next_id),
+        "nome_perfil": nome,
+        "cargo": cargo,
+        "descricao": payload.get("descricao", f"Perfil {nome}"),
+        "atribacoes": _normalize_permissions(atribacoes),
+    }
+
+    for index, current in enumerate(perfis):
+        current_cargo = _normalize_profile_slug(current.get("cargo") or current.get("nome_perfil"))
+        if current_cargo == cargo:
+            profile["id_perfil"] = current.get("id_perfil", profile["id_perfil"])
+            perfis[index] = profile
+            write_json(USUARIOS_PATH, data)
+            return profile
+
+    perfis.append(profile)
+    write_json(USUARIOS_PATH, data)
+    return profile
+
+
+def _normalize_profile_slug(value: Any) -> str:
+    import re
+    import unicodedata
+
+    text = unicodedata.normalize("NFD", str(value or "").strip().lower())
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    return re.sub(r"(^-+|-+$)", "", re.sub(r"[^a-z0-9]+", "-", text))
+
+
+def _normalize_permissions(values: list[Any]) -> list[str]:
+    permissions = ["dashboard"]
+    for value in values:
+        item = str(value or "").strip()
+        if item and item not in permissions:
+            permissions.append(item)
+    return permissions
+
+
 def authenticate(matricula: str, senha: str) -> dict[str, Any]:
     matricula = matricula.strip().upper()
 

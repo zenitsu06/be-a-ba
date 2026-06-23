@@ -1,6 +1,29 @@
 const CHAVE_USUARIOS_LOCAL = 'usuariosJsonAtualizado';
 const CHAVE_LOJAS_LOCAL = 'lojasJsonAtualizado';
 const API_BASE = window.OFERTE_CONFIG?.API_BASE || 'http://localhost:8000';
+const PERFIS_PADRAO = [
+    {
+        id_perfil: 1,
+        nome_perfil: 'Administrador',
+        cargo: 'administrador',
+        descricao: 'Acesso completo ao sistema',
+        atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia']
+    },
+    {
+        id_perfil: 2,
+        nome_perfil: 'Gestor',
+        cargo: 'gestor',
+        descricao: 'Fiscaliza estoque, relatórios e indicadores de IA',
+        atribacoes: ['dashboard', 'relatorios', 'ia']
+    },
+    {
+        id_perfil: 3,
+        nome_perfil: 'Lojista',
+        cargo: 'lojista',
+        descricao: 'Acesso ao recebimento de talões',
+        atribacoes: ['dashboard']
+    }
+];
 
 let lojasRegistradas = [];
 let listaUsuarios = [];
@@ -8,12 +31,26 @@ let perfisUsuarios = [];
 let matriculaEmEdicao = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!validarAcessoPerfis()) return;
     await carregarDadosIniciais();
     atualizarCardsMetricas();
     renderizarTabelaUsuarios();
+    popularSelectCargos();
     popularSelectLojas();
     inicializarEventosModal();
 });
+
+function validarAcessoPerfis() {
+    const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+    if (!usuarioLogado || !window.OfertePermissions?.has('gerenciar-perfis')) {
+        window.location.href = '../login/login.html';
+        return false;
+    }
+
+    const nomeAdmin = document.getElementById('nome-admin');
+    if (nomeAdmin) nomeAdmin.innerText = usuarioLogado.nome || 'Administrador';
+    return true;
+}
 
 async function carregarDadosIniciais() {
     const dadosApi = await apiGet('/api/usuarios');
@@ -21,19 +58,19 @@ async function carregarDadosIniciais() {
     if (dadosApi?.usuarios) {
         listaUsuarios = normalizarUsuarios(dadosApi.usuarios);
         const perfisApi = await apiGet('/api/perfis');
-        perfisUsuarios = perfisApi?.perfis || [];
+        perfisUsuarios = normalizarPerfis(perfisApi?.perfis || []);
         salvarUsuariosJson();
     } else {
         const dadosLocais = JSON.parse(localStorage.getItem(CHAVE_USUARIOS_LOCAL));
 
         if (dadosLocais && Array.isArray(dadosLocais.usuarios)) {
             listaUsuarios = normalizarUsuarios(dadosLocais.usuarios);
-            perfisUsuarios = dadosLocais.perfis || [];
+            perfisUsuarios = normalizarPerfis(dadosLocais.perfis || []);
         } else {
             const respostaUsuarios = await fetch('../dados/usuarios.json');
             const dadosUsuarios = await respostaUsuarios.json();
             listaUsuarios = normalizarUsuarios(Array.isArray(dadosUsuarios) ? dadosUsuarios : dadosUsuarios.usuarios);
-            perfisUsuarios = dadosUsuarios.perfis || [];
+            perfisUsuarios = normalizarPerfis(dadosUsuarios.perfis || []);
             salvarUsuariosJson();
         }
     }
@@ -83,9 +120,53 @@ function normalizarUsuarios(usuarios) {
     }));
 }
 
+function normalizarPerfis(perfis) {
+    const perfisFonte = Array.isArray(perfis) && perfis.length ? perfis : PERFIS_PADRAO;
+    const porCargo = new Map();
+
+    [...PERFIS_PADRAO, ...perfisFonte].forEach((perfil, index) => {
+        const cargo = normalizarCargo(perfil.cargo || perfil.nome_perfil || perfil.nome || `perfil-${index + 1}`);
+        porCargo.set(cargo, {
+            id_perfil: perfil.id_perfil || index + 1,
+            nome_perfil: perfil.nome_perfil || perfil.nome || formatarCargo(cargo),
+            cargo,
+            descricao: perfil.descricao || '',
+            atribacoes: normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo))
+        });
+    });
+
+    return Array.from(porCargo.values());
+}
+
+function normalizarCargo(valor) {
+    return String(valor || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function formatarCargo(cargo) {
+    return String(cargo || '')
+        .split('-')
+        .filter(Boolean)
+        .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
+        .join(' ');
+}
+
+function normalizarAtribuicoes(atribuicoes) {
+    const lista = Array.from(new Set(['dashboard', ...(atribuicoes || [])]));
+    return lista.filter(Boolean);
+}
+
 function atribuirAcessosPadrao(cargo) {
     if (cargo === 'administrador') {
-        return ["dashboard", "gerenciar-perfis", "enviar-taloes", "lojas"];
+        return ["dashboard", "gerenciar-perfis", "enviar-taloes", "relatorios", "lojas", "ia"];
+    }
+    if (cargo === 'gestor') {
+        return ["dashboard", "relatorios", "ia"];
     }
     return ["dashboard"];
 }
@@ -163,6 +244,27 @@ function popularSelectLojas() {
     });
 }
 
+function popularSelectCargos() {
+    const select = document.getElementById('cad-cargo');
+    const valorAtual = select.value;
+    select.innerHTML = '<option value="">Selecione o cargo...</option>';
+
+    perfisUsuarios.forEach(perfil => {
+        const opt = document.createElement('option');
+        opt.value = perfil.cargo;
+        opt.innerText = perfil.nome_perfil;
+        select.appendChild(opt);
+    });
+
+    if (valorAtual && perfisUsuarios.some(perfil => perfil.cargo === valorAtual)) {
+        select.value = valorAtual;
+    }
+}
+
+function buscarPerfilPorCargo(cargo) {
+    return perfisUsuarios.find(perfil => perfil.cargo === cargo) || null;
+}
+
 async function alternarStatusUsuario(matricula) {
     const usuario = listaUsuarios.find(user => user.matricula === matricula);
     if (!usuario) return;
@@ -206,8 +308,11 @@ function abrirEdicaoUsuario(matricula) {
 
 function inicializarEventosModal() {
     const modal = document.getElementById('modal-cadastro');
+    const modalPerfil = document.getElementById('modal-perfil');
     const btnAbrir = document.getElementById('btn-abrir-cadastro');
     const btnFechar = document.getElementById('btn-fechar-modal');
+    const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
+    const btnFecharPerfil = document.getElementById('btn-fechar-modal-perfil');
     const cargoSelect = document.getElementById('cad-cargo');
 
     btnAbrir.addEventListener('click', () => {
@@ -219,13 +324,28 @@ function inicializarEventosModal() {
         fecharModalCadastro();
     });
 
+    btnAbrirPerfil.addEventListener('click', () => {
+        prepararFormularioPerfil();
+        modalPerfil.style.display = 'flex';
+    });
+
+    btnFecharPerfil.addEventListener('click', () => {
+        fecharModalPerfil();
+    });
+
     cargoSelect.addEventListener('change', (e) => {
+        aplicarAtribuicoesDoCargo(e.target.value);
         atualizarVisibilidadeAtribuicoes(e.target.value);
     });
 
     document.getElementById('form-cadastro-usuario').addEventListener('submit', async (e) => {
         e.preventDefault();
         await salvarUsuarioDoFormulario();
+    });
+
+    document.getElementById('form-cadastro-perfil').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await salvarPerfilDoFormulario();
     });
 
     document.getElementById('busca-usuario').addEventListener('input', (e) => {
@@ -247,6 +367,13 @@ function prepararFormularioCadastro() {
     atualizarVisibilidadeAtribuicoes("");
 }
 
+function prepararFormularioPerfil() {
+    document.getElementById('form-cadastro-perfil').reset();
+    document.querySelectorAll('input[name="perfil-atribuicao"]').forEach(chk => {
+        chk.checked = chk.value === 'dashboard';
+    });
+}
+
 function fecharModalCadastro() {
     document.getElementById('modal-cadastro').style.display = 'none';
     document.getElementById('form-cadastro-usuario').reset();
@@ -254,9 +381,61 @@ function fecharModalCadastro() {
     atualizarVisibilidadeAtribuicoes("");
 }
 
+function fecharModalPerfil() {
+    document.getElementById('modal-perfil').style.display = 'none';
+    document.getElementById('form-cadastro-perfil').reset();
+}
+
 function atualizarVisibilidadeAtribuicoes(cargo) {
     const blocoAtribuicoes = document.getElementById('bloco-atribacoes');
     blocoAtribuicoes.style.display = cargo === 'lojista' ? 'none' : 'flex';
+}
+
+function aplicarAtribuicoesDoCargo(cargo) {
+    const perfil = buscarPerfilPorCargo(cargo);
+    const atribacoes = perfil?.atribacoes || atribuirAcessosPadrao(cargo);
+
+    document.querySelectorAll('input[name="atribuicao"]').forEach(chk => {
+        chk.checked = atribacoes.includes(chk.value);
+    });
+}
+
+async function salvarPerfilDoFormulario() {
+    const nome = document.getElementById('perfil-nome').value.trim();
+    const cargo = normalizarCargo(document.getElementById('perfil-cargo').value);
+    const atribacoes = normalizarAtribuicoes(
+        Array.from(document.querySelectorAll('input[name="perfil-atribuicao"]:checked')).map(chk => chk.value)
+    );
+
+    if (!nome || !cargo) {
+        alert('Informe nome e cargo para criar o perfil.');
+        return;
+    }
+
+    const perfil = {
+        id_perfil: buscarPerfilPorCargo(cargo)?.id_perfil || gerarNovoIdPerfil(),
+        nome_perfil: nome,
+        cargo,
+        descricao: `Perfil ${nome}`,
+        atribacoes
+    };
+
+    const respostaApi = await apiPost('/api/perfis', perfil);
+    const perfilPersistido = normalizarPerfis([respostaApi?.perfil || perfil])[0];
+
+    perfisUsuarios = normalizarPerfis([
+        ...perfisUsuarios.filter(item => item.cargo !== perfilPersistido.cargo),
+        perfilPersistido
+    ]);
+
+    salvarUsuariosJson();
+    popularSelectCargos();
+    fecharModalPerfil();
+    alert('Perfil criado com sucesso.');
+}
+
+function gerarNovoIdPerfil() {
+    return perfisUsuarios.reduce((maior, perfil) => Math.max(maior, Number(perfil.id_perfil || 0)), 0) + 1;
 }
 
 async function salvarUsuarioDoFormulario() {

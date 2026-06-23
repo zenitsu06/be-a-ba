@@ -8,15 +8,25 @@ const passo2 = document.getElementById('passo-2');
 const passo3 = document.getElementById('passo-3');
 const CHAVE_USUARIOS_LOCAL = 'usuariosJsonAtualizado';
 
-async function carregarUsuarios() {
+async function carregarDadosLogin() {
     const dadosLocais = JSON.parse(localStorage.getItem(CHAVE_USUARIOS_LOCAL));
     if (dadosLocais && Array.isArray(dadosLocais.usuarios)) {
-        return dadosLocais.usuarios;
+        return {
+            usuarios: dadosLocais.usuarios,
+            perfis: normalizarPerfis(dadosLocais.perfis || [])
+        };
     }
 
     const resposta = await fetch('../dados/usuarios.json');
     const dados = await resposta.json();
-    return Array.isArray(dados) ? dados : dados.usuarios;
+    return {
+        usuarios: Array.isArray(dados) ? dados : dados.usuarios,
+        perfis: normalizarPerfis(dados.perfis || [])
+    };
+}
+
+async function carregarUsuarios() {
+    return (await carregarDadosLogin()).usuarios;
 }
 
 document.getElementById('form-login').addEventListener('submit', async function(e) {
@@ -26,7 +36,8 @@ document.getElementById('form-login').addEventListener('submit', async function(
     const senhaInserida = document.getElementById('login-senha').value;
 
     try {
-        const listaUsuarios = await carregarUsuarios();
+        const dadosLogin = await carregarDadosLogin();
+        const listaUsuarios = dadosLogin.usuarios;
         
         // Verifica se há alguma senha modificada localmente no LocalStorage
         const senhaAlteradaLocalmente = localStorage.getItem(`novaSenha_${matriculaInserida}`);
@@ -43,6 +54,8 @@ document.getElementById('form-login').addEventListener('submit', async function(
                 return;
             }
 
+            const atribacoes = obterAtribuicoesUsuario(usuarioValidado, dadosLogin.perfis);
+
             localStorage.setItem('usuarioLogado', JSON.stringify({
                 nome: usuarioValidado.nome,
                 matricula: usuarioValidado.matricula,
@@ -51,7 +64,8 @@ document.getElementById('form-login').addEventListener('submit', async function(
                 loja: usuarioValidado.loja,
                 lojaNome: usuarioValidado.lojaNome,
                 lojaUf: usuarioValidado.lojaUf,
-                status: usuarioValidado.status
+                status: usuarioValidado.status,
+                atribacoes
             }));
 
             // Redirecionamento baseado nos cargos do seu JSON
@@ -66,7 +80,7 @@ document.getElementById('form-login').addEventListener('submit', async function(
                     window.location.href = '../usuario/usuario.html';
                     break;
                 default:
-                    alert('Cargo não reconhecido. Entre em contato com o suporte.');
+                    window.location.href = destinoInicialPorAtribuicoes(atribacoes);
             }
         } else {
             alert('Matrícula ou senha incorretas.');
@@ -172,3 +186,67 @@ document.getElementById('btn-passo3').addEventListener('click', () => {
     alert("Senha alterada com sucesso! Você já pode realizar o login.");
     fecharModais();
 });
+
+function normalizarPerfis(perfis) {
+    const padrao = [
+        { nome_perfil: 'Administrador', cargo: 'administrador', atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia'] },
+        { nome_perfil: 'Gestor', cargo: 'gestor', atribacoes: ['dashboard', 'relatorios', 'ia'] },
+        { nome_perfil: 'Lojista', cargo: 'lojista', atribacoes: ['dashboard'] }
+    ];
+    const mapa = new Map();
+
+    [...padrao, ...(perfis || [])].forEach(perfil => {
+        const cargo = normalizarCargo(perfil.cargo || perfil.nome_perfil);
+        mapa.set(cargo, {
+            ...perfil,
+            cargo,
+            atribacoes: normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo))
+        });
+    });
+
+    return Array.from(mapa.values());
+}
+
+function normalizarCargo(valor) {
+    return String(valor || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function normalizarAtribuicoes(atribuicoes) {
+    return Array.from(new Set(['dashboard', ...(atribuicoes || [])])).filter(Boolean);
+}
+
+function atribuirAcessosPadrao(cargo) {
+    if (cargo === 'administrador') {
+        return ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia'];
+    }
+    if (cargo === 'gestor') {
+        return ['dashboard', 'relatorios', 'ia'];
+    }
+    return ['dashboard'];
+}
+
+function obterAtribuicoesUsuario(usuario, perfis) {
+    const cargo = normalizarCargo(usuario.cargo);
+    const perfil = perfis.find(item => item.cargo === cargo);
+    return normalizarAtribuicoes(perfil?.atribacoes || usuario.atribacoes || usuario.atribuicoes || atribuirAcessosPadrao(cargo));
+}
+
+function destinoInicialPorAtribuicoes(atribacoes) {
+    const rotas = {
+        'gerenciar-perfis': '../GerenciarPerfis/perfis.html',
+        'enviar-taloes': '../EnvioTaloes/envio.html',
+        relatorios: '../gestor/relatorios.html',
+        lojas: '../Lojas/lojas.html',
+        dashboard: '../administrador/dashboard.html'
+    };
+
+    const primeira = ['gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'dashboard']
+        .find(item => atribacoes.includes(item));
+    return rotas[primeira || 'dashboard'];
+}

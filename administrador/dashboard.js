@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- SISTEMA DE SEGURANÇA ---
 function iniciarSeguranca() {
     const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-    if (!usuarioLogado || !['administrador', 'gestor'].includes(usuarioLogado.cargo)) {
+    if (!usuarioLogado || !window.OfertePermissions?.has('dashboard')) {
         window.location.href = '../login/login.html';
         return;
     }

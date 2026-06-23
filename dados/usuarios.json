@@ -1,5 +1,5 @@
 {
-   "usuarios": [
+  "usuarios": [
     {
       "nome": "Allan Crasso",
       "matricula": "QQ1001",
@@ -9,8 +9,13 @@
       "loja": "Matriz Central",
       "lojaNome": "Matriz Central",
       "lojaUf": "",
-      "status": "Ativo",
-      "atribacoes": ["dashboard", "gerenciar-perfis", "enviar-taloes", "lojas"]
+      "status": "Inativo",
+      "atribacoes": [
+        "dashboard",
+        "gerenciar-perfis",
+        "enviar-taloes",
+        "lojas"
+      ]
     },
     {
       "nome": "Nathaly Silva",
@@ -22,7 +27,9 @@
       "lojaNome": "Filial Porto Alegre",
       "lojaUf": "RS",
       "status": "Ativo",
-      "atribacoes": ["dashboard"]
+      "atribacoes": [
+        "dashboard"
+      ]
     },
     {
       "nome": "Kaua Sousa",
@@ -34,7 +41,12 @@
       "lojaNome": "Matriz Central",
       "lojaUf": "",
       "status": "Ativo",
-      "atribacoes": ["dashboard", "gerenciar-perfis", "enviar-taloes", "lojas"]
+      "atribacoes": [
+        "dashboard",
+        "gerenciar-perfis",
+        "enviar-taloes",
+        "lojas"
+      ]
     },
     {
       "nome": "Maria Gestora",
@@ -46,10 +58,28 @@
       "lojaNome": "Matriz Central",
       "lojaUf": "",
       "status": "Ativo",
-      "atribacoes": ["dashboard", "enviar-taloes", "lojas"]
-    }],
-    "perfis": [
-    { "id_perfil": 1, "nome_perfil": "Administrador", "descricao": "Acesso completo ao sistema" },
-    { "id_perfil": 2, "nome_perfil": "Gerente de Estoque", "descricao": "Acesso ao estoque das lojas" },
-    { "id_perfil": 3, "nome_perfil": "Usuário", "descricao": "Acesso a envio e recebimento de talões" }] 
+      "atribacoes": [
+        "dashboard",
+        "enviar-taloes",
+        "lojas"
+      ]
+    }
+  ],
+  "perfis": [
+    {
+      "id_perfil": 1,
+      "nome_perfil": "Administrador",
+      "descricao": "Acesso completo ao sistema"
+    },
+    {
+      "id_perfil": 2,
+      "nome_perfil": "Gerente de Estoque",
+      "descricao": "Acesso ao estoque das lojas"
+    },
+    {
+      "id_perfil": 3,
+      "nome_perfil": "Usuário",
+      "descricao": "Acesso a envio e recebimento de talões"
+    }
+  ]
 }

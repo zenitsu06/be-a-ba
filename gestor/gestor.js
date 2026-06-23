@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function iniciarGestor() {
     usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-    if (!usuarioLogado || !['gestor', 'administrador'].includes(usuarioLogado.cargo)) {
+    if (!usuarioLogado || !window.OfertePermissions?.has('dashboard')) {
         window.location.href = '../login/login.html';
         return;
     }

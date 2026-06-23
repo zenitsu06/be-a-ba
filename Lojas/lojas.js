@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function iniciarSeguranca() {
     usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-    if (!usuarioLogado || !['administrador', 'gestor'].includes(usuarioLogado.cargo)) {
+    if (!usuarioLogado || !window.OfertePermissions?.has('lojas')) {
         window.location.href = '../login/login.html';
         return;
     }

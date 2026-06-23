@@ -145,6 +145,13 @@ body {
     margin-bottom: 20px;
 }
 
+.primary-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .btn-primary-green {
     background-color: #00b087;
     color: white;
@@ -158,6 +165,22 @@ body {
 
 .btn-primary-green:hover {
     background-color: #009672;
+}
+
+.btn-secondary-outline {
+    background-color: white;
+    color: #24463e;
+    border: 1px solid #00b087;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-secondary-outline:hover {
+    background-color: #f0fcf9;
+    color: #008565;
 }
 
 .search-wrapper {
@@ -349,6 +372,11 @@ body {
     flex-direction: column;
     gap: 6px;
     max-height: 112px;
+    overflow-y: auto;
+}
+
+.checkbox-group-box.profile-permissions {
+    max-height: 180px;
 }
 
 .check-item {

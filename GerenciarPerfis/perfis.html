@@ -56,7 +56,10 @@
 
         <section class="table-section">
             <div class="table-controls">
-                <button id="btn-abrir-cadastro" class="btn-primary-green">+ Cadastrar Usuário</button>
+                <div class="primary-actions">
+                    <button id="btn-abrir-cadastro" class="btn-primary-green">+ Cadastrar Usuário</button>
+                    <button id="btn-abrir-perfil" class="btn-secondary-outline">Criar perfil</button>
+                </div>
                 
                 <div class="controls-right">
                     <div class="search-wrapper">
@@ -116,9 +119,6 @@
                     <div class="select-filter-wrapper">
                         <select id="cad-cargo" required>
                             <option value="">Selecione o cargo...</option>
-                            <option value="administrador">Administrador</option>
-                            <option value="gestor">Gestor</option>
-                            <option value="lojista">Lojista</option>
                         </select>
                     </div>
                 </div>
@@ -136,7 +136,13 @@
                             <input type="checkbox" name="atribuicao" value="enviar-taloes"> Envio de Talões
                         </label>
                         <label class="check-item">
+                            <input type="checkbox" name="atribuicao" value="relatorios"> Relatórios
+                        </label>
+                        <label class="check-item">
                             <input type="checkbox" name="atribuicao" value="lojas"> Cadastrar e Ver Lojas
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="atribuicao" value="ia"> IA / Chatbot
                         </label>
                     </div>
                 </div>
@@ -157,7 +163,55 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-perfil">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="btn-fechar-modal-perfil"><span>&times;</span></button>
+            <h2>Criar perfil</h2>
+
+            <form id="form-cadastro-perfil">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="perfil-nome" placeholder="Ex: Supervisor de estoque" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Cargo</label>
+                    <input type="text" id="perfil-cargo" placeholder="Ex: supervisor-estoque" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Atribuir função</label>
+                    <div class="checkbox-group-box profile-permissions">
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="dashboard" checked> Dashboard
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="gerenciar-perfis"> Gerenciar perfis
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="enviar-taloes"> Enviar talões
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="relatorios"> Relatórios
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="lojas"> Lojas
+                        </label>
+                        <label class="check-item">
+                            <input type="checkbox" name="perfil-atribuicao" value="ia"> IA / Chatbot
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn-submit-save">Salvar perfil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="../shared/app-config.js"></script>
+    <script src="../shared/permissions.js"></script>
     <script src="./perfis.js"></script>
     <script src="../shared/chatbot.js"></script>
 </body>
