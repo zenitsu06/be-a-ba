@@ -51,7 +51,13 @@ function validarAcessoPerfis() {
 
     const nomeAdmin = document.getElementById('nome-admin');
     if (nomeAdmin) nomeAdmin.innerText = usuarioLogado.nome || 'Administrador';
+    document.getElementById('btn-sair')?.addEventListener('click', deslogar);
     return true;
+}
+
+function deslogar() {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = '../login/login.html';
 }
 
 async function carregarDadosIniciais() {

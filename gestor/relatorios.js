@@ -113,7 +113,9 @@ function iniciarRelatorios() {
     }
 
     configurarSidebarPorPerfil();
-    document.getElementById('btn-sair-gestor')?.addEventListener('click', sair);
+    const nomeTopo = document.getElementById('nome-relatorio-usuario');
+    if (nomeTopo) nomeTopo.innerText = usuarioLogado.nome || 'Usuário';
+    document.getElementById('btn-sair-relatorios')?.addEventListener('click', sair);
 }
 
 function configurarSidebarPorPerfil() {
