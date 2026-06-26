@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recebimento de Talões - Verdecard</title>
+    <link rel="stylesheet" href="../administrador/dashboard.css">
+    <link rel="stylesheet" href="./recebimento.css">
+    <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/ui-refresh.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Verdecard</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="../administrador/dashboard.html" class="menu-item">Dashboard</a>
+            <a href="../GerenciarPerfis/perfis.html" class="menu-item">Gerenciar perfis</a>
+            <a href="../EnvioTaloes/envio.html" class="menu-item">Enviar Talões</a>
+            <a href="./recebimento.html" class="menu-item active">Recebimento</a>
+            <a href="../gestor/relatorios.html" class="menu-item">Relatórios</a>
+            <a href="../Lojas/lojas.html" class="menu-item">Lojas</a> <br><br>
+            <p class="menu-item">Outros</p>
+            <a href="#" class="menu-item">Configurações</a>
+            <a href="#" class="menu-item">Ajuda</a>
+            <a href="#" class="menu-item">Sobre</a>
+        </nav>
+    </aside>
+
+    <main class="main-content recebimento-page">
+        <header class="admin-header">
+            <div class="header-title">
+                <h1>Recebimento de Talões</h1>
+            </div>
+            <div class="header-right">
+                <span id="nome-admin">Administrador</span>
+                <div class="user-avatar"></div>
+                <button id="btn-sair" class="btn-sair">Sair</button>
+            </div>
+        </header>
+
+        <section class="receipt-summary-grid">
+            <div class="receipt-metric-card">
+                <span class="metric-label">Remessas monitoradas</span>
+                <strong id="total-envios">0</strong>
+                <span class="metric-hint">Envios cadastrados</span>
+            </div>
+            <div class="receipt-metric-card">
+                <span class="metric-label">Recebidas</span>
+                <strong id="total-recebidas">0</strong>
+                <span class="metric-hint">Com confirmação do lojista</span>
+            </div>
+            <div class="receipt-metric-card">
+                <span class="metric-label">Pendentes</span>
+                <strong id="total-pendentes">0</strong>
+                <span class="metric-hint">Aguardando atualização</span>
+            </div>
+            <div class="receipt-metric-card alert-card">
+                <span class="metric-label">Anomalias</span>
+                <strong id="total-anomalias">0</strong>
+                <span class="metric-hint">Revisão manual sugerida</span>
+            </div>
+        </section>
+
+        <section class="receipt-ai-card">
+            <div class="ai-heading">
+                <strong>Detecção de anomalias no recebimento</strong>
+                <span id="ia-status">IA ativa</span>
+            </div>
+            <p id="texto-ia-recebimento">Analisando padrões de recebimento das lojas...</p>
+        </section>
+
+        <section class="table-section receipt-table-section">
+            <div class="table-controls">
+                <h2>Envios</h2>
+
+                <div class="controls-right">
+                    <button id="btn-exportar-recebimentos" class="btn-export-csv" type="button">Exportar CSV</button>
+
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="busca-recebimento" placeholder="Search">
+                    </div>
+
+                    <div class="select-wrapper">
+                        <select id="filtro-status">
+                            <option value="">Filtrar por : status</option>
+                            <option value="recebido">Recebido</option>
+                            <option value="pendente">Pendente</option>
+                            <option value="anomalia">Com anomalia</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="receipt-table">
+                    <thead>
+                        <tr>
+                            <th>Data de envio</th>
+                            <th>Remessa</th>
+                            <th>Loja</th>
+                            <th>UF</th>
+                            <th>Qnt. enviada</th>
+                            <th>Recebimento</th>
+                            <th>Divergência</th>
+                            <th>Status</th>
+                            <th>Análise IA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-recebimento-corpo">
+                        <tr><td colspan="9">Carregando remessas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../shared/app-config.js"></script>
+    <script src="../shared/permissions.js"></script>
+    <script src="../shared/report-utils.js"></script>
+    <script src="./recebimento.js"></script>
+    <script src="../shared/chatbot.js"></script>
+</body>
+</html>

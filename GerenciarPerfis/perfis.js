@@ -7,7 +7,7 @@ const PERFIS_PADRAO = [
         nome_perfil: 'Administrador',
         cargo: 'administrador',
         descricao: 'Acesso completo ao sistema',
-        atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia']
+        atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'recebimentos', 'relatorios', 'lojas', 'ia']
     },
     {
         id_perfil: 2,
@@ -135,12 +135,14 @@ function normalizarPerfis(perfis) {
 
     [...PERFIS_PADRAO, ...perfisFonte].forEach((perfil, index) => {
         const cargo = normalizarCargo(perfil.cargo || perfil.nome_perfil || perfil.nome || `perfil-${index + 1}`);
+        const atribacoes = normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo));
+        if (cargo === 'administrador' && !atribacoes.includes('recebimentos')) atribacoes.push('recebimentos');
         porCargo.set(cargo, {
             id_perfil: perfil.id_perfil || index + 1,
             nome_perfil: perfil.nome_perfil || perfil.nome || formatarCargo(cargo),
             cargo,
             descricao: perfil.descricao || '',
-            atribacoes: normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo))
+            atribacoes
         });
     });
 
@@ -172,7 +174,7 @@ function normalizarAtribuicoes(atribuicoes) {
 
 function atribuirAcessosPadrao(cargo) {
     if (cargo === 'administrador') {
-        return ["dashboard", "gerenciar-perfis", "enviar-taloes", "relatorios", "lojas", "ia"];
+        return ["dashboard", "gerenciar-perfis", "enviar-taloes", "recebimentos", "relatorios", "lojas", "ia"];
     }
     if (cargo === 'gestor') {
         return ["dashboard", "relatorios", "ia"];

@@ -175,12 +175,13 @@ function renderizarTabelaEstoqueBaixo() {
             <td>${loja.uf}</td>
             <td>${loja.quantidade_recomendada}</td>
             <td>${loja.quantidade_atual}</td>
+            <td><span class="priority-badge ${classePrioridade(loja.estado_estoque)}">${loja.estado_estoque}</span></td>
         `;
         corpo.appendChild(tr);
     });
 
     if (!linhas.length) {
-        corpo.innerHTML = '<tr><td colspan="5">Nenhuma loja em estado crítico ou alerta.</td></tr>';
+        corpo.innerHTML = '<tr><td colspan="6">Nenhuma loja em estado crítico ou alerta.</td></tr>';
     }
 }
 
@@ -212,7 +213,11 @@ function obterLojasEstoqueBaixo() {
             };
         })
         .filter(loja => loja.estado_estoque === 'Crítico' || loja.estado_estoque === 'Alerta')
-        .sort((a, b) => Number(a.quantidade_atual || 0) - Number(b.quantidade_atual || 0));
+        .sort((a, b) => {
+            const peso = { 'Crítico': 2, 'Alerta': 1 };
+            return (peso[b.estado_estoque] || 0) - (peso[a.estado_estoque] || 0)
+                || Number(a.quantidade_atual || 0) - Number(b.quantidade_atual || 0);
+        });
 }
 
 function calcularEstadoEstoque(loja) {
@@ -234,6 +239,18 @@ function normalizarPrioridadeTexto(prioridade, classe = '') {
     if (valor.includes('alert') || valor.includes('baixo')) return 'Alerta';
     if (valor.includes('média') || valor.includes('media')) return 'Na média';
     if (valor.includes('cheio') || valor.includes('baixa')) return 'Cheio';
+    return '';
+}
+
+function classePrioridade(prioridade) {
+    const valor = String(prioridade || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    if (valor.includes('crit')) return 'critico';
+    if (valor.includes('alert')) return 'alerta';
+    if (valor.includes('media')) return 'media';
+    if (valor.includes('cheio')) return 'cheio';
     return '';
 }
 

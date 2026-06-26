@@ -189,7 +189,7 @@ document.getElementById('btn-passo3').addEventListener('click', () => {
 
 function normalizarPerfis(perfis) {
     const padrao = [
-        { nome_perfil: 'Administrador', cargo: 'administrador', atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia'] },
+        { nome_perfil: 'Administrador', cargo: 'administrador', atribacoes: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'recebimentos', 'relatorios', 'lojas', 'ia'] },
         { nome_perfil: 'Gestor', cargo: 'gestor', atribacoes: ['dashboard', 'relatorios', 'ia'] },
         { nome_perfil: 'Lojista', cargo: 'lojista', atribacoes: ['dashboard'] }
     ];
@@ -197,10 +197,12 @@ function normalizarPerfis(perfis) {
 
     [...padrao, ...(perfis || [])].forEach(perfil => {
         const cargo = normalizarCargo(perfil.cargo || perfil.nome_perfil);
+        const atribacoes = normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo));
+        if (cargo === 'administrador' && !atribacoes.includes('recebimentos')) atribacoes.push('recebimentos');
         mapa.set(cargo, {
             ...perfil,
             cargo,
-            atribacoes: normalizarAtribuicoes(perfil.atribacoes || perfil.atribuicoes || atribuirAcessosPadrao(cargo))
+            atribacoes
         });
     });
 
@@ -223,7 +225,7 @@ function normalizarAtribuicoes(atribuicoes) {
 
 function atribuirAcessosPadrao(cargo) {
     if (cargo === 'administrador') {
-        return ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia'];
+        return ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'recebimentos', 'relatorios', 'lojas', 'ia'];
     }
     if (cargo === 'gestor') {
         return ['dashboard', 'relatorios', 'ia'];
@@ -241,12 +243,13 @@ function destinoInicialPorAtribuicoes(atribacoes) {
     const rotas = {
         'gerenciar-perfis': '../GerenciarPerfis/perfis.html',
         'enviar-taloes': '../EnvioTaloes/envio.html',
+        recebimentos: '../Recebimento/recebimento.html',
         relatorios: '../gestor/relatorios.html',
         lojas: '../Lojas/lojas.html',
         dashboard: '../administrador/dashboard.html'
     };
 
-    const primeira = ['gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'dashboard']
+    const primeira = ['gerenciar-perfis', 'enviar-taloes', 'recebimentos', 'relatorios', 'lojas', 'dashboard']
         .find(item => atribacoes.includes(item));
     return rotas[primeira || 'dashboard'];
 }

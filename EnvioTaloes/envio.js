@@ -268,7 +268,6 @@ function renderizarTabela() {
                 <td>${envio.quantidade_enviada}</td>
                 <td>${envio.quantidade_recomendada}</td>
                 <td>${envio.quantidade_minima}</td>
-                <td><span class="priority-badge ${envio.classePrioridade}">${envio.prioridade_ia}</span></td>
                 <td>
                     <button class="btn-edit-shipment" onclick="abrirEdicaoEnvio('${envio.id_envio}')">Editar</button>
                 </td>
@@ -277,7 +276,7 @@ function renderizarTabela() {
         });
 
     if (!corpo.children.length) {
-        corpo.innerHTML = '<tr><td colspan="9">Nenhum envio encontrado.</td></tr>';
+        corpo.innerHTML = '<tr><td colspan="8">Nenhum envio encontrado.</td></tr>';
     }
 }
 
@@ -292,8 +291,7 @@ function obterEnviosVisiveis() {
             const passaBusca = textoBusca.includes(termo);
             const passaStatus = !filtroStatus || envio.status === filtroStatus;
             return passaBusca && passaStatus;
-        })
-        .sort((a, b) => Number(b.score_prioridade || 0) - Number(a.score_prioridade || 0));
+        });
 }
 
 function abrirEdicaoEnvio(idEnvio) {
@@ -464,7 +462,6 @@ function exportarRelatorioEnvios() {
             ['quantidade_enviada', 'Qnt. enviada'],
             ['quantidade_recomendada', 'Recomendada'],
             ['quantidade_minima', 'Mínima'],
-            ['prioridade_ia', 'Prioridade'],
             ['status', 'Status']
         ]
     });

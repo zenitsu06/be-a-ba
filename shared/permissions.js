@@ -1,6 +1,6 @@
 (function () {
     const DEFAULT_PERMISSIONS = {
-        administrador: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'relatorios', 'lojas', 'ia'],
+        administrador: ['dashboard', 'gerenciar-perfis', 'enviar-taloes', 'recebimentos', 'relatorios', 'lojas', 'ia'],
         gestor: ['dashboard', 'relatorios', 'ia'],
         lojista: ['dashboard']
     };
@@ -28,10 +28,13 @@
         if (!usuario) return [];
 
         const cargo = normalizarCargo(usuario.cargo);
-        return Array.from(new Set([
+        const permissoes = new Set([
             'dashboard',
             ...((usuario.atribacoes || usuario.atribuicoes || DEFAULT_PERMISSIONS[cargo] || []) || [])
-        ]));
+        ]);
+
+        if (cargo === 'administrador') permissoes.add('recebimentos');
+        return Array.from(permissoes);
     }
 
     function temPermissao(permissao) {
@@ -46,6 +49,7 @@
         if (texto.includes('dashboard')) return 'dashboard';
         if (texto.includes('gerenciar')) return 'gerenciar-perfis';
         if (texto.includes('enviar') || href.includes('EnvioTaloes')) return 'enviar-taloes';
+        if (texto.includes('recebimento') || href.includes('Recebimento')) return 'recebimentos';
         if (texto.includes('relatório') || texto.includes('relatorios') || href.includes('relatorios')) return 'relatorios';
         if (texto.includes('lojas') || href.includes('Lojas')) return 'lojas';
         return '';

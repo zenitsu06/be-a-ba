@@ -428,6 +428,18 @@ textarea:focus {
     border-radius: 8px !important;
 }
 
+.priority-badge {
+    align-items: center;
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 700;
+    justify-content: center;
+    line-height: 1;
+    min-width: 86px;
+    padding: 6px 10px;
+    text-align: center;
+}
+
 .priority-badge.critico {
     background-color: #5f1216 !important;
     color: #ffffff !important;
