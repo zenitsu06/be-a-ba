@@ -67,6 +67,56 @@
         }, 80);
     }
 
+    function inicializarMenuMobile() {
+        const sidebar = document.querySelector('.sidebar:not(.report-sidebar)');
+        const header = document.querySelector('.admin-header');
+
+        if (!sidebar || !header || document.querySelector('.mobile-sidebar-toggle')) return;
+
+        if (!sidebar.id) sidebar.id = 'app-sidebar';
+
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'mobile-sidebar-toggle';
+        botao.setAttribute('aria-label', 'Abrir menu');
+        botao.setAttribute('aria-controls', sidebar.id);
+        botao.setAttribute('aria-expanded', 'false');
+        botao.innerHTML = '<span></span><span></span><span></span>';
+        header.insertBefore(botao, header.firstElementChild);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.hidden = true;
+        document.body.appendChild(overlay);
+
+        function alternarMenu(aberto) {
+            document.body.classList.toggle('sidebar-open', aberto);
+            botao.setAttribute('aria-expanded', String(aberto));
+            botao.setAttribute('aria-label', aberto ? 'Fechar menu' : 'Abrir menu');
+            overlay.hidden = !aberto;
+        }
+
+        botao.addEventListener('click', () => {
+            alternarMenu(!document.body.classList.contains('sidebar-open'));
+        });
+
+        overlay.addEventListener('click', () => alternarMenu(false));
+
+        sidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => alternarMenu(false));
+        });
+
+        window.addEventListener('keydown', (evento) => {
+            if (evento.key === 'Escape') alternarMenu(false);
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.matchMedia('(min-width: 901px)').matches) {
+                alternarMenu(false);
+            }
+        });
+    }
+
     function exigir(permissao, fallback = '../login/login.html') {
         const usuario = usuarioAtual();
         if (!usuario || !temPermissao(permissao)) {
@@ -83,5 +133,8 @@
         require: exigir
     };
 
-    document.addEventListener('DOMContentLoaded', aplicarSidebar);
+    document.addEventListener('DOMContentLoaded', () => {
+        aplicarSidebar();
+        inicializarMenuMobile();
+    });
 })();

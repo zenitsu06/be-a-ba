@@ -67,6 +67,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 25px;
+    min-width: 0;
 }
 
 .admin-header {
@@ -143,6 +144,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .primary-actions {
@@ -150,6 +153,8 @@ body {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    flex: 1 1 320px;
+    min-width: 0;
 }
 
 .controls-right {
@@ -157,6 +162,8 @@ body {
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
+    flex: 0 1 390px;
+    min-width: 0;
 }
 
 .btn-primary-green {
@@ -192,6 +199,8 @@ body {
 
 .search-wrapper {
     position: relative;
+    flex: 1 1 220px;
+    min-width: 0;
 }
 
 .search-wrapper input {
@@ -201,6 +210,7 @@ body {
     border-radius: 20px;
     outline: none;
     width: 260px;
+    max-width: 100%;
     font-size: 0.9rem;
 }
 
@@ -219,6 +229,7 @@ body {
 
 .user-table {
     width: 100%;
+    min-width: 760px;
     border-collapse: collapse;
     text-align: left;
 }
@@ -311,12 +322,15 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    padding: 20px;
 }
 
 .modal-card {
     background-color: white;
     width: 100%;
     max-width: 520px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
     border-radius: 14px;
     padding: 30px;
     position: relative;
@@ -486,11 +500,78 @@ body {
 }
 
 /* RESPONSIVIDADE */
+@media (max-width: 1100px) {
+    .metrics-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .table-controls {
+        align-items: flex-start;
+    }
+
+    .controls-right {
+        flex: 1 1 390px;
+    }
+
+    .search-wrapper input {
+        width: 100%;
+    }
+}
+
 @media (max-width: 900px) {
     .sidebar { display: none; }
     .main-content { margin-left: 0; padding: 20px; }
     .metrics-grid { grid-template-columns: 1fr; }
-    .table-controls { flex-direction: column; gap: 15px; align-items: flex-start; }
-    .controls-right { width: 100%; flex-direction: column; align-items: stretch; }
+    .table-controls { flex-direction: column; gap: 15px; align-items: stretch; }
+    .primary-actions, .controls-right { width: 100%; }
     .search-wrapper input { width: 100%; }
+}
+
+@media (max-width: 640px) {
+    .main-content {
+        padding: 15px;
+        gap: 18px;
+    }
+
+    .admin-header {
+        height: auto;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .header-title h1 {
+        font-size: 1.25rem;
+    }
+
+    .header-right {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .metric-card,
+    .table-section {
+        padding: 18px;
+        border-radius: 10px;
+    }
+
+    .primary-actions,
+    .controls-right {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .primary-actions button,
+    .controls-right .btn-export-csv {
+        width: 100%;
+    }
+
+    .modal-card {
+        padding: 24px 18px;
+    }
+
+    .profile-existing-row {
+        grid-template-columns: 1fr;
+    }
 }

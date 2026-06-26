@@ -175,6 +175,7 @@ body {
     align-items: center;
     margin-bottom: 20px;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .table-controls h2 {
@@ -187,10 +188,14 @@ body {
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
+    flex: 0 1 429px;
+    min-width: 0;
 }
 
 .search-wrapper {
     position: relative;
+    flex: 1 1 240px;
+    min-width: 0;
 }
 
 .search-wrapper input {
@@ -200,6 +205,7 @@ body {
     border-radius: 20px;
     outline: none;
     width: 300px;
+    max-width: 100%;
     font-size: 0.9rem;
 }
 
@@ -254,6 +260,8 @@ body {
     background-color: white;
     width: 100%;
     max-width: 520px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
     border-radius: 14px;
     padding: 30px;
     position: relative;
@@ -330,19 +338,31 @@ body {
     background-color: #009672;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
     .metrics-grid {
         grid-template-columns: 1fr;
+    }
+
+    .table-controls {
+        align-items: flex-start;
+    }
+
+    .controls-right {
+        flex: 1 1 429px;
+    }
+
+    .search-wrapper input {
+        width: 100%;
     }
 }
 
 @media (max-width: 900px) {
     .sidebar {
-        width: 200px;
+        display: none;
     }
 
     .main-content {
-        margin-left: 200px;
+        margin-left: 0;
         padding: 20px;
     }
 
@@ -353,7 +373,6 @@ body {
 
     .controls-right {
         width: 100%;
-        flex-direction: column;
         align-items: stretch;
     }
 
@@ -362,14 +381,11 @@ body {
     }
 }
 
-@media (max-width: 600px) {
-    .sidebar {
-        display: none;
-    }
-
+@media (max-width: 640px) {
     .main-content {
         margin-left: 0;
         padding: 15px;
+        gap: 18px;
     }
 
     .admin-header {
@@ -380,7 +396,24 @@ body {
     }
 
     .header-right {
+        width: 100%;
         flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .metric-card,
+    .table-section {
+        padding: 18px;
+        border-radius: 10px;
+    }
+
+    .controls-right {
+        flex-direction: column;
+    }
+
+    .controls-right .btn-export-csv,
+    .btn-primary-green {
+        width: 100%;
     }
 
     .stock-form-grid {

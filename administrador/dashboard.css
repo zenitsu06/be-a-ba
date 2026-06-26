@@ -201,6 +201,29 @@ body {
     font-size: 0.82rem;
 }
 
+.low-stock-table .table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-color: #9fcfc0 #eef5f2;
+    scrollbar-width: thin;
+}
+
+.low-stock-table .table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.low-stock-table .table-wrapper::-webkit-scrollbar-track {
+    background-color: #eef5f2;
+    border-radius: 999px;
+}
+
+.low-stock-table .table-wrapper::-webkit-scrollbar-thumb {
+    background-color: #9fcfc0;
+    border-radius: 999px;
+}
+
 .admin-stock-table {
     width: 100%;
     border-collapse: collapse;
@@ -213,6 +236,7 @@ body {
     padding: 13px 12px;
     border-bottom: 1px solid #edf0ef;
     font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .admin-stock-table th {
@@ -293,9 +317,13 @@ canvas {
         grid-template-columns: 1fr; /* 1 card por linha */
     }
     .admin-header {
-        flex-direction: column;
+        flex-direction: row;
         align-items: flex-start;
         gap: 15px;
         height: auto;
+    }
+
+    .section-heading {
+        flex-direction: column;
     }
 }
