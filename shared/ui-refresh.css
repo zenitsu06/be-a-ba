@@ -275,6 +275,33 @@ body {
     background-color: var(--vc-green-soft) !important;
 }
 
+.btn-export,
+.btn-export-csv {
+    align-items: center;
+    background-color: #ffffff !important;
+    border: 1px solid #12b986 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    color: #0e7b5f !important;
+    cursor: pointer;
+    display: inline-flex;
+    font-weight: 700 !important;
+    height: 34px !important;
+    justify-content: center;
+    line-height: 1;
+    padding: 0 16px !important;
+    white-space: nowrap;
+}
+
+.btn-export:hover,
+.btn-export-csv:hover {
+    background-color: #effcf8 !important;
+    border-color: #12b986 !important;
+    box-shadow: none !important;
+    color: #0e7b5f !important;
+    transform: none;
+}
+
 .btn-sair,
 .manager-logout {
     border-radius: 8px !important;
