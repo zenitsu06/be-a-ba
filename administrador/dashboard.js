@@ -1,34 +1,31 @@
-const TEMPO_INATIVIDADE_MS = 10 * 60 * 1000; 
-let timeoutInatividade;
+const API_BASE = window.OFERTE_CONFIG?.API_BASE || 'http://localhost:8000';
+const CHAVE_LOJAS_LOCAL = 'lojasJsonAtualizado';
+const CHAVE_TALOES_LOCAL = 'taloesJsonAtualizado';
+const TEMPO_INATIVIDADE_MS = 10 * 60 * 1000;
 const tokenSessao = Math.random().toString(36).substring(2);
 
-// Dicionário de mock para preencher meses anteriores (Conforme regra 4)
-const recebidos_taloes_mock = [1200, 1500, 1100, 1800, 1400]; // Jan a Mai
+let timeoutInatividade;
+let lojasDashboard = [];
+let analisesIA = [];
+let resumoIA = null;
 
-// Dicionário base de Lojas Mockadas para gerar o Gráfico Pizza e Lista de Risco
-const lojasMock = [
-    { nome: "Filial Centro", uf: "RS", estoqueAtual: 45, media: 150 }, // Abaixo (Risco)
-    { nome: "Filial Norte", uf: "SC", estoqueAtual: 160, media: 150 }, // OK
-    { nome: "Filial Sul", uf: "PR", estoqueAtual: 30, media: 100 }     // Abaixo (Risco)
-];
+const recebidos_taloes_mock = [1200, 1500, 1100, 1800, 1400];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     iniciarSeguranca();
-    carregarDadosLojista();
+    await carregarDadosDashboard();
     renderizarGraficosELojas();
 });
 
-// --- SISTEMA DE SEGURANÇA ---
 function iniciarSeguranca() {
     const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
     if (!usuarioLogado || !window.OfertePermissions?.has('dashboard')) {
         window.location.href = '../login/login.html';
         return;
     }
-    
+
     document.getElementById('nome-admin').innerText = usuarioLogado.nome;
 
-    // Proteção contra múltiplos logins (Verifica se o token desta aba é o oficial)
     sessionStorage.setItem('tokenSessaoAtiva', tokenSessao);
     localStorage.setItem('tokenControleAdmin', tokenSessao);
 
@@ -59,40 +56,67 @@ function deslogar() {
     window.location.href = '../login/login.html';
 }
 
-// --- PROCESSAMENTO DE DADOS ---
-function carregarDadosLojista() {
-    const historico = JSON.parse(localStorage.getItem('historicoRecebimento')) || [];
-    
-    // Simulacao inicial para que os cards regionais tenham leitura administrativa.
+async function carregarDadosDashboard() {
+    carregarCardsRegionais();
+    await carregarLojasEIA();
+}
+
+function carregarCardsRegionais() {
+    const historico = JSON.parse(localStorage.getItem('historicoRecebimento') || '[]');
     const totaisUF = { RS: 420, SC: 260, PR: 190, MS: 145, SP: 310 };
-    let totalJunho = Object.values(totaisUF).reduce((soma, valor) => soma + valor, 0);
+    let totalMesAtual = Object.values(totaisUF).reduce((soma, valor) => soma + valor, 0);
 
     historico.forEach(item => {
-        if (item.status === "Recebido") {
-            // Soma para o gráfico de barras (Mês Atual - Junho)
-            totalJunho += parseInt(item.recebidos);
-
-            // Simulação de distribuição por UF (Como o JSON atual não salva UF no histórico diretamente, 
-            // no sistema real você atrelaria o código da remessa à UF. Aqui fazemos um rateio simulado para o protótipo dar vida aos cards)
-            // Se o histórico tivesse item.uf, seria: totaisUF[item.uf] += parseInt(item.recebidos);
-            // Para o protótipo, vamos jogar tudo no RS temporariamente pois a loja mockada era Quero-Quero RS:
-            totaisUF['RS'] += parseInt(item.recebidos);
+        if (item.status === 'Recebido') {
+            const recebidos = Number(item.recebidos || 0);
+            totalMesAtual += recebidos;
+            totaisUF.RS += recebidos;
         }
     });
 
-    // Atualiza os Cards
     document.getElementById('val-RS').innerText = totaisUF.RS;
     document.getElementById('val-SC').innerText = totaisUF.SC;
     document.getElementById('val-PR').innerText = totaisUF.PR;
     document.getElementById('val-MS').innerText = totaisUF.MS;
     document.getElementById('val-SP').innerText = totaisUF.SP;
 
-    // Atualiza o array de dados do gráfico inserindo Junho na posição 5 (Índice 5 = Mês 6)
-    window.dadosGraficoBarras = [...recebidos_taloes_mock, totalJunho, 0, 0, 0, 0, 0, 0];
+    window.dadosGraficoBarras = [...recebidos_taloes_mock, totalMesAtual, 0, 0, 0, 0, 0, 0];
+}
+
+async function carregarLojasEIA() {
+    const lojasApi = await apiGet('/api/lojas');
+    const estoqueApi = await apiGet('/api/estoque');
+
+    if (lojasApi?.lojas) {
+        lojasDashboard = aplicarEstoqueNasLojas(lojasApi.lojas, estoqueApi?.estoque_lojas || []);
+        localStorage.setItem(CHAVE_LOJAS_LOCAL, JSON.stringify({
+            lojas: lojasDashboard,
+            estoque_lojas: estoqueApi?.estoque_lojas || []
+        }));
+    } else {
+        const locais = JSON.parse(localStorage.getItem(CHAVE_LOJAS_LOCAL) || 'null');
+        if (locais?.lojas) {
+            lojasDashboard = aplicarEstoqueNasLojas(locais.lojas, locais.estoque_lojas || []);
+        } else {
+            const dados = await fetchJson('../dados/lojas.json', { lojas: [], estoque_lojas: [] });
+            lojasDashboard = aplicarEstoqueNasLojas(dados.lojas || [], dados.estoque_lojas || []);
+            localStorage.setItem(CHAVE_LOJAS_LOCAL, JSON.stringify(dados));
+        }
+    }
+
+    const dadosIA = await apiGet('/api/ia/envio-taloes') || await fetchJson('../dados/ia_envio_taloes.json', {});
+    analisesIA = dadosIA.analises || [];
+    resumoIA = dadosIA.resumo || null;
 }
 
 function renderizarGraficosELojas() {
-    // 1. Gráfico de Barras (Recebimentos)
+    renderizarGraficoBarras();
+    renderizarGraficoPizza();
+    renderizarTabelaEstoqueBaixo();
+    renderizarSugestaoIA();
+}
+
+function renderizarGraficoBarras() {
     const ctxBar = document.getElementById('barChart').getContext('2d');
     new Chart(ctxBar, {
         type: 'bar',
@@ -112,39 +136,20 @@ function renderizarGraficosELojas() {
             scales: { y: { beginAtZero: true } }
         }
     });
+}
 
-    // 2. Processa Lojas em Risco e Gráfico de Pizza
-    let lojasAbaixo = 0;
-    let lojasOk = 0;
-    const listaRisco = document.getElementById('lista-risco');
-    listaRisco.innerHTML = '';
-
-    lojasMock.forEach(loja => {
-        if (loja.estoqueAtual < loja.media) {
-            lojasAbaixo++;
-            listaRisco.innerHTML += `
-                <li>
-                    <span><strong>${loja.nome}</strong> (${loja.uf})</span>
-                    <span>${loja.estoqueAtual} / ${loja.media}</span>
-                </li>`;
-        } else {
-            lojasOk++;
-        }
-    });
-
-    if (lojasAbaixo === 0) {
-        listaRisco.innerHTML = '<li class="empty-state">Nenhuma loja em risco no momento.</li>';
-    }
-
-    // 3. Gráfico de Pizza (Estoque Geral)
+function renderizarGraficoPizza() {
+    const baixos = obterLojasEstoqueBaixo().length;
+    const ok = Math.max(lojasDashboard.length - baixos, 0);
     const ctxPie = document.getElementById('pieChart').getContext('2d');
+
     new Chart(ctxPie, {
         type: 'doughnut',
         data: {
-            labels: ['Abaixo da Média (Risco)', 'Estoque OK'],
+            labels: ['Crítico / Alerta', 'Na média / Cheio'],
             datasets: [{
-                data: [lojasAbaixo, lojasOk],
-                backgroundColor: ['#d9534f', '#00b087'],
+                data: [baixos, ok],
+                backgroundColor: ['#b91c1c', '#00b087'],
                 borderWidth: 0
             }]
         },
@@ -155,4 +160,135 @@ function renderizarGraficosELojas() {
             plugins: { legend: { position: 'bottom' } }
         }
     });
+}
+
+function renderizarTabelaEstoqueBaixo() {
+    const corpo = document.getElementById('tabela-estoque-baixo');
+    const linhas = obterLojasEstoqueBaixo();
+    corpo.innerHTML = '';
+
+    linhas.forEach(loja => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${loja.codigo_loja}</strong></td>
+            <td>${loja.nome_da_loja}</td>
+            <td>${loja.uf}</td>
+            <td>${loja.quantidade_recomendada}</td>
+            <td>${loja.quantidade_atual}</td>
+        `;
+        corpo.appendChild(tr);
+    });
+
+    if (!linhas.length) {
+        corpo.innerHTML = '<tr><td colspan="5">Nenhuma loja em estado crítico ou alerta.</td></tr>';
+    }
+}
+
+function renderizarSugestaoIA() {
+    const texto = document.getElementById('texto-ia-admin');
+    if (resumoIA?.mensagem) {
+        texto.innerText = resumoIA.mensagem;
+        return;
+    }
+
+    const criticas = obterLojasEstoqueBaixo().filter(loja => loja.estado_estoque === 'Crítico');
+    const prioridadeMaxima = criticas.map(loja => `${loja.nome_da_loja} (${loja.uf})`).join(', ') || '-';
+    texto.innerText = [
+        `Análise concluída em ${formatarDataHoraVisual(new Date())}`,
+        `Quantidade de lojas em estado crítico: ${criticas.length}`,
+        `Prioridade máxima: ${prioridadeMaxima}`
+    ].join('\n');
+}
+
+function obterLojasEstoqueBaixo() {
+    return lojasDashboard
+        .map(loja => {
+            const analise = buscarAnaliseIA(loja.codigo_loja);
+            const estado = normalizarPrioridadeTexto(analise.prioridade, analise.classe_css) || calcularEstadoEstoque(loja);
+            return {
+                ...loja,
+                quantidade_atual: Number(analise.estoque_atual ?? loja.quantidade_atual ?? loja['Quantidade atual'] ?? 0),
+                estado_estoque: estado
+            };
+        })
+        .filter(loja => loja.estado_estoque === 'Crítico' || loja.estado_estoque === 'Alerta')
+        .sort((a, b) => Number(a.quantidade_atual || 0) - Number(b.quantidade_atual || 0));
+}
+
+function calcularEstadoEstoque(loja) {
+    const atual = Number(loja.quantidade_atual ?? loja['Quantidade atual'] ?? 0);
+    const minimo = Number(loja.quantidade_minima || 0);
+    const recomendado = Number(loja.quantidade_recomendada || Math.max(minimo * 3, 1));
+    if (atual <= minimo) return 'Crítico';
+    if (atual < recomendado) return 'Alerta';
+    if (atual <= recomendado * 1.15) return 'Na média';
+    return 'Cheio';
+}
+
+function normalizarPrioridadeTexto(prioridade, classe = '') {
+    const valor = String(prioridade || classe || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    if (valor.includes('crit') || valor.includes('prioridade') || valor.includes('alta')) return 'Crítico';
+    if (valor.includes('alert') || valor.includes('baixo')) return 'Alerta';
+    if (valor.includes('média') || valor.includes('media')) return 'Na média';
+    if (valor.includes('cheio') || valor.includes('baixa')) return 'Cheio';
+    return '';
+}
+
+function buscarAnaliseIA(codigoLoja) {
+    return analisesIA.find(item => item.codigo_loja === codigoLoja) || {};
+}
+
+function aplicarEstoqueNasLojas(listaLojas, listaEstoque) {
+    const estoquePorLoja = Object.fromEntries(
+        (listaEstoque || []).map(item => [String(item.codigo_loja || '').toUpperCase(), Number(item.quantidade_atual || 0)])
+    );
+
+    return (listaLojas || []).map(loja => {
+        const codigo = String(loja.codigo_loja || '').toUpperCase();
+        const quantidade = codigo in estoquePorLoja
+            ? estoquePorLoja[codigo]
+            : Number(loja.quantidade_atual ?? loja['Quantidade atual'] ?? 0);
+        return {
+            ...loja,
+            quantidade_atual: quantidade,
+            'Quantidade atual': quantidade
+        };
+    });
+}
+
+async function apiGet(route) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 800);
+    try {
+        const response = await fetch(`${API_BASE}${route}`, { signal: controller.signal });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (erro) {
+        return null;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function fetchJson(url, fallback) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return fallback;
+        return await response.json();
+    } catch (erro) {
+        return fallback;
+    }
+}
+
+function formatarDataHoraVisual(data) {
+    return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(data);
 }

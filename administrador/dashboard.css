@@ -154,7 +154,9 @@ body {
     gap: 20px;
 }
 
-.chart-container, .risk-container {
+.chart-container,
+.low-stock-table,
+.ai-suggestion-card {
     background-color: white;
     border-radius: 12px;
     padding: 25px;
@@ -162,7 +164,8 @@ body {
     border: 1px solid #eef2f1;
 }
 
-.chart-container h2, .risk-container h2 {
+.chart-container h2,
+.section-heading h2 {
     font-size: 1.1rem;
     color: #333;
     margin-bottom: 20px;
@@ -174,37 +177,73 @@ body {
     gap: 20px;
 }
 
-/* LISTA DE RISCO */
-.risk-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.admin-insights-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+    gap: 20px;
+    align-items: stretch;
 }
 
-.risk-list li {
+.section-heading {
     display: flex;
     justify-content: space-between;
-    padding: 12px;
-    background-color: #fdf5f5;
-    border-radius: 6px;
-    border-left: 4px solid #d9534f;
-    font-size: 0.9rem;
-    color: #333;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
 }
 
-.risk-list .empty-state {
-    background-color: #f9f9f9;
-    border-left: 4px solid #ccc;
-    color: #888;
-    justify-content: center;
+.section-heading h2 {
+    margin-bottom: 0;
+}
+
+.section-heading span {
+    color: #6b7773;
+    font-size: 0.82rem;
+}
+
+.admin-stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    min-width: 720px;
+}
+
+.admin-stock-table th,
+.admin-stock-table td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #edf0ef;
+    font-size: 0.9rem;
+}
+
+.admin-stock-table th {
+    color: #6d7b77;
+    background-color: #f7fbfa;
+    font-weight: 700;
+}
+
+.ai-suggestion-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-suggestion-card strong {
+    color: #111;
+}
+
+.ai-suggestion-card p {
+    color: #3d4b47;
+    line-height: 1.5;
+    white-space: pre-line;
 }
 
 /* --- CORREÇÃO DE RESPONSIVIDADE DO CHART.JS --- */
 .chart-container, 
 .side-panel, 
 .charts-grid, 
-.cards-grid {
+.cards-grid,
+.admin-insights-grid,
+.low-stock-table {
     min-width: 0; /* Quebra a trava de tamanho mínimo do Grid */
 }
 
@@ -218,6 +257,9 @@ canvas {
 @media (max-width: 1200px) {
     .charts-grid {
         grid-template-columns: 1fr; /* Empilha o gráfico de barras em cima da pizza */
+    }
+    .admin-insights-grid {
+        grid-template-columns: 1fr;
     }
     .cards-grid {
         grid-template-columns: repeat(3, 1fr); /* Reduz de 5 para 3 cards lado a lado */

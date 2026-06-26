@@ -51,7 +51,7 @@
     <main class="manager-content">
         <header class="manager-topbar report-topbar">
             <div class="report-topbar-title">
-                <h1>Relatórios de remessas</h1>
+                <h1>Histórico de relatórios</h1>
             </div>
             <div class="report-topbar-user">
                 <span id="nome-relatorio-usuario">Usuário</span>
@@ -80,6 +80,7 @@
                 <label class="date-filter report-type-filter" id="tipo-relatorio-wrapper">
                     Tipo
                     <select id="tipo-relatorio">
+                        <option value="historico_relatorios">Histórico de relatórios</option>
                         <option value="relatorios_enviados">Relatorios enviados</option>
                         <option value="usuarios">Usuarios cadastrados</option>
                         <option value="perfis">Perfis de usuarios</option>
@@ -120,6 +121,7 @@
 
     <script src="../shared/app-config.js"></script>
     <script src="../shared/permissions.js"></script>
+    <script src="../shared/report-utils.js"></script>
     <script src="./relatorios.js"></script>
     <script src="../shared/chatbot.js"></script>
 </body>

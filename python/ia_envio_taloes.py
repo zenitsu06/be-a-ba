@@ -136,6 +136,58 @@ def _nome_loja(codigo, lojas):
     return loja.get('nome_da_loja') if loja else codigo
 
 
+def parse_data_hora(valor):
+    if not valor:
+        return None
+    texto = str(valor).replace('T', ' ')
+    for formato, tamanho in (
+        ('%Y-%m-%d %H:%M:%S', 19),
+        ('%Y-%m-%d %H:%M', 16),
+        ('%Y-%m-%d', 10),
+    ):
+        try:
+            return datetime.strptime(texto[:tamanho], formato)
+        except ValueError:
+            continue
+    return None
+
+
+def dentro_das_ultimas_duas_semanas(valor):
+    data = parse_data_hora(valor)
+    return bool(data and data >= datetime.now() - timedelta(days=14))
+
+
+def numero_ou_zero(valor):
+    try:
+        return float(valor or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def calcular_consumo_14d(loja, envios, recebimentos, atual, recomendado, taxa_conversao):
+    cod = loja['codigo_loja']
+    envios_14d = [
+        e for e in envios
+        if e.get('cod_loja') == cod and dentro_das_ultimas_duas_semanas(e.get('data_hora_envio'))
+    ]
+    recebimentos_14d = [
+        r for r in recebimentos
+        if r.get('cod_loja') == cod and dentro_das_ultimas_duas_semanas(r.get('data_hora_recebimento'))
+    ]
+
+    recebido_14d = sum(int(r.get('quantidade_recebida', 0) or 0) for r in recebimentos_14d)
+    enviado_14d = sum(int(e.get('quantidade_enviada', 0) or 0) for e in envios_14d)
+    queda_estoque = max(recomendado - atual, 0)
+    conversao_estimativa = int((recebido_14d or enviado_14d or recomendado) * max(float(taxa_conversao or 0), 1) / 100)
+    consumo_estimado = max(queda_estoque, conversao_estimativa)
+
+    return {
+        'consumo_14d_estimado': consumo_estimado,
+        'recebido_14d': recebido_14d,
+        'enviado_14d': enviado_14d
+    }
+
+
 # ============================================================
 #  RF11 — ALERTA AUTOMÁTICO DE ESTOQUE BAIXO
 # ============================================================
@@ -180,7 +232,7 @@ def gerar_alertas(lojas, estoque_lojas):
 # ============================================================
 #  RF11-IA — PREVISÃO PREDITIVA DE ESTOQUE
 # ============================================================
-def prever_estoque(loja, estoque_lojas, envios):
+def prever_estoque(loja, estoque_lojas, envios, recebimentos, taxa_conversao=0):
     """
     Simula um modelo de regressão linear que analisa o histórico
     de envios para projetar a necessidade futura de reposição.
@@ -192,26 +244,22 @@ def prever_estoque(loja, estoque_lojas, envios):
     """
     cod = loja['codigo_loja']
 
-    # Filtrar envios desta loja
     envios_loja = [e for e in envios if e['cod_loja'] == cod]
-
-    # Estoque atual
     estoque_info = next(
         (e for e in estoque_lojas if e['codigo_loja'] == cod), None
     )
     atual = estoque_info['quantidade_atual'] if estoque_info else 0
+    recomendado = loja['quantidade_recomendada']
+    minimo = loja['quantidade_minima']
+    consumo = calcular_consumo_14d(loja, envios, recebimentos, atual, recomendado, taxa_conversao)
+    consumo_14d = consumo['consumo_14d_estimado']
 
     if not envios_loja:
-        # Sem histórico: sugerir quantidade recomendada como baseline
-        quantidade_sugerida = loja['quantidade_recomendada']
         tendencia = 'estável'
         confianca = 60
     else:
-        # Média de talões por envio (simulando consumo histórico)
         medias = [e['quantidade_enviada'] for e in envios_loja]
         media_consumo = sum(medias) / len(medias)
-
-        # Simular variação de tendência baseada em quantidade de envios
         num_envios = len(envios_loja)
         if num_envios >= 3:
             ultimo = envios_loja[-1]['quantidade_enviada']
@@ -230,18 +278,28 @@ def prever_estoque(loja, estoque_lojas, envios):
             tendencia = 'estável'
             fator = 1.0
 
-        quantidade_sugerida = max(
-            int(media_consumo * fator),
-            loja['quantidade_minima']
-        )
         confianca = min(60 + num_envios * 8, 95)
+        consumo_14d = max(consumo_14d, int(media_consumo * fator * 0.45))
 
-    # Projeção para 30 dias
+    deficit_recomendado = max(recomendado - atual, 0)
+    reposicao_necessaria = deficit_recomendado + int(consumo_14d * 1.2)
+    if atual <= minimo:
+        quantidade_sugerida = max(reposicao_necessaria, recomendado - atual + minimo)
+    elif atual < recomendado:
+        quantidade_sugerida = max(reposicao_necessaria, int((recomendado - atual) * 1.1))
+    elif atual <= recomendado * 1.15:
+        quantidade_sugerida = max(int(consumo_14d * 0.8), int(recomendado * 0.15))
+    else:
+        quantidade_sugerida = max(0, int(consumo_14d * 0.35))
+
+    limite_sugestao = max(recomendado * 2, minimo)
+    quantidade_sugerida = min(quantidade_sugerida, limite_sugestao)
+
     dias_ate_minimo = None
-    if atual > loja['quantidade_minima']:
-        consumo_diario = quantidade_sugerida / 30
+    if atual > minimo:
+        consumo_diario = max(consumo_14d / 14, quantidade_sugerida / 30, 1)
         if consumo_diario > 0:
-            dias_ate_minimo = int((atual - loja['quantidade_minima']) / consumo_diario)
+            dias_ate_minimo = int((atual - minimo) / consumo_diario)
 
     return {
         'codigo_loja':        cod,
@@ -249,14 +307,19 @@ def prever_estoque(loja, estoque_lojas, envios):
         'uf':                 loja['uf'],
         'estoque_atual':      atual,
         'quantidade_sugerida': quantidade_sugerida,
-        'quantidade_minima':  loja['quantidade_minima'],
+        'quantidade_minima':  minimo,
         'tendencia_consumo':  tendencia,
         'confianca_modelo':   confianca,
         'dias_ate_minimo':    dias_ate_minimo,
+        'consumo_14d_estimado': consumo_14d,
+        'recebido_14d': consumo['recebido_14d'],
+        'enviado_14d': consumo['enviado_14d'],
+        'reposicao_necessaria': reposicao_necessaria,
         'mensagem_previsao': (
             f"Modelo preditivo: consumo com tendência {tendencia}. "
             f"Sugestão de envio: {quantidade_sugerida} talões "
             f"(confiança {confianca}%). "
+            f"Consumo estimado em 14 dias: {consumo_14d} talões. "
             + (f"Estoque mínimo atingido em ~{dias_ate_minimo} dias."
                if dias_ate_minimo else "Reposição imediata recomendada.")
         )
@@ -268,12 +331,8 @@ def prever_estoque(loja, estoque_lojas, envios):
 # ============================================================
 def calcular_prioridade(loja, estoque_lojas, previsao, taxa_conversao=0):
     """
-    Combina múltiplos fatores para gerar um score de prioridade:
-    - Nível crítico do estoque atual
-    - Taxa de consumo (giro)
-    - Tendência de demanda
-    - Tempo estimado até atingir o mínimo
-    Retorna: Prioridade (Alta / Média / Baixa) + score numérico
+    Classifica a loja nos quatro níveis operacionais:
+    Crítico, Alerta, Na média e Cheio.
     """
     cod = loja['codigo_loja']
     estoque_info = next(
@@ -282,62 +341,38 @@ def calcular_prioridade(loja, estoque_lojas, previsao, taxa_conversao=0):
     atual = estoque_info['quantidade_atual'] if estoque_info else 0
     minimo = loja['quantidade_minima']
     recomendado = loja['quantidade_recomendada']
-
-    score = 0
-
-    # Fator 1: nível de estoque atual (peso 40%)
-    pct_estoque = atual / max(recomendado, 1)
-    if pct_estoque < 0.3:
-        score += 40
-    elif pct_estoque < 0.6:
-        score += 25
-    elif pct_estoque < 0.9:
-        score += 10
-    else:
-        score += 0
-
-    # Fator 2: estoque abaixo do mínimo (peso 30%)
-    if atual <= minimo:
-        score += 30
-    elif atual <= minimo * 1.3:
-        score += 15
-
-    # Fator 3: tendência de consumo (peso 20%)
-    if previsao['tendencia_consumo'] == 'crescente':
-        score += 20
-    elif previsao['tendencia_consumo'] == 'estável':
-        score += 10
-
-    # Fator 4: urgência de tempo (peso 10%)
+    consumo_14d = numero_ou_zero(previsao.get('consumo_14d_estimado'))
     dias = previsao.get('dias_ate_minimo')
-    if dias is not None and dias <= 7:
-        score += 10
-    elif dias is not None and dias <= 15:
-        score += 5
+    pct_recomendado = atual / max(recomendado, 1)
 
-    if taxa_conversao >= 18:
-        score += 15
-    elif taxa_conversao >= 12:
-        score += 8
-    elif taxa_conversao < 5:
-        score -= 5
+    if atual <= minimo:
+        prioridade = 'Crítico'
+        classe = 'critico'
+        score = 100 - int(min(pct_recomendado, 1) * 12)
+    elif atual < recomendado or (dias is not None and dias <= 14):
+        prioridade = 'Alerta'
+        classe = 'alerta'
+        score = 76 + int(max(0, 1 - pct_recomendado) * 18)
+        if consumo_14d >= max(recomendado - minimo, 1) * 0.6:
+            score += 4
+    elif atual <= recomendado * 1.15:
+        prioridade = 'Na média'
+        classe = 'media'
+        score = 45 + int(max(0, 1.15 - pct_recomendado) * 10)
+    else:
+        prioridade = 'Cheio'
+        classe = 'cheio'
+        score = max(5, 30 - int(min(pct_recomendado - 1.15, 1) * 15))
+
+    if taxa_conversao >= 18 and prioridade in ('Alerta', 'Na média'):
+        score += 4
 
     score = max(0, min(score, 100))
-
-    # Classificar
-    if score >= 60:
-        prioridade = 'Prioridade'
-        classe     = 'alta'
-    elif score >= 30:
-        prioridade = 'média'
-        classe     = 'media'
-    else:
-        prioridade = 'baixa'
-        classe     = 'baixa'
 
     return {
         'prioridade': prioridade,
         'classe_css': classe,
+        'estado_estoque': prioridade,
         'score':      score
     }
 
@@ -350,8 +385,8 @@ def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
     alertas   = gerar_alertas(lojas, estoque_lojas)
 
     for loja in lojas:
-        previsao    = prever_estoque(loja, estoque_lojas, envios)
         conversao   = simular_taxa_conversao(loja, envios, recebimentos)
+        previsao    = prever_estoque(loja, estoque_lojas, envios, recebimentos, conversao['taxa_percentual'])
         rank        = calcular_prioridade(loja, estoque_lojas, previsao, conversao['taxa_percentual'])
         alerta_loja = next(
             (a for a in alertas if a['codigo_loja'] == loja['codigo_loja']), None
@@ -369,7 +404,12 @@ def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
             'dias_ate_minimo':   previsao['dias_ate_minimo'],
             'prioridade':        rank['prioridade'],
             'classe_css':        rank['classe_css'],
+            'estado_estoque':    rank['estado_estoque'],
             'score_prioridade':  rank['score'],
+            'consumo_14d_estimado': previsao['consumo_14d_estimado'],
+            'recebido_14d':      previsao['recebido_14d'],
+            'enviado_14d':       previsao['enviado_14d'],
+            'reposicao_necessaria': previsao['reposicao_necessaria'],
             'taxa_conversao_historica': conversao['taxa_percentual'],
             'cartoes_estimados_30d': conversao['cartoes_estimados_30d'],
             'conversao_base_calculo': conversao['base_calculo'],
@@ -387,18 +427,18 @@ def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
     anomalias = detectar_anomalias_recebimento(lojas, envios, recebimentos, analises)
     notificacoes_workplace = gerar_notificacoes_workplace(alertas)
 
-    # Lojas em alerta
-    lojas_criticas = [a for a in analises if a['alerta_nivel'] == 'CRITICO']
-    lojas_baixas   = [a for a in analises if a['alerta_nivel'] == 'BAIXO']
-    lojas_ok       = [a for a in analises if a['alerta_nivel'] is None]
+    lojas_criticas = [a for a in analises if a['prioridade'] == 'Crítico']
+    lojas_alerta   = [a for a in analises if a['prioridade'] == 'Alerta']
+    lojas_media    = [a for a in analises if a['prioridade'] == 'Na média']
+    lojas_cheias   = [a for a in analises if a['prioridade'] == 'Cheio']
+    prioridade_maxima = ', '.join(f"{a['nome_loja']} ({a['uf']})" for a in lojas_criticas) or (
+        f"{analises[0]['nome_loja']} ({analises[0]['uf']})" if analises else '-'
+    )
 
     resumo_msg = (
-        f"Análise concluída em {datetime.now().strftime('%d/%m/%Y %H:%M')}. "
-        f"{len(lojas_criticas)} loja(s) em estado CRÍTICO, "
-        f"{len(lojas_baixas)} em estoque BAIXO, "
-        f"{len(lojas_ok)} dentro do parâmetro. "
-        f"Prioridade máxima: {analises[0]['nome_loja']} ({analises[0]['uf']}) "
-        f"com score {analises[0]['score_prioridade']}/100."
+        f"Análise concluída em {datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+        f"Quantidade de lojas em estado crítico: {len(lojas_criticas)}\n"
+        f"Prioridade máxima: {prioridade_maxima}"
         if analises else "Nenhuma loja analisada."
     )
 
@@ -408,8 +448,12 @@ def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
         'resumo': {
             'mensagem':        resumo_msg,
             'lojas_criticas':  len(lojas_criticas),
-            'lojas_baixas':    len(lojas_baixas),
-            'lojas_ok':        len(lojas_ok),
+            'lojas_alerta':    len(lojas_alerta),
+            'lojas_media':     len(lojas_media),
+            'lojas_cheias':    len(lojas_cheias),
+            'lojas_baixas':    len(lojas_alerta),
+            'lojas_ok':        len(lojas_media) + len(lojas_cheias),
+            'prioridade_maxima': prioridade_maxima,
             'anomalias':       len(anomalias),
             'notificacoes_workplace': len(notificacoes_workplace)
         },

@@ -13,6 +13,15 @@ let relatorioGerado = null;
 let relatorioSelecionadoLinhas = [];
 
 const COLUNAS_RELATORIOS = {
+    historico_relatorios: [
+        ['data_hora', 'Data / hora'],
+        ['nome_relatorio', 'Relatório'],
+        ['origem', 'Origem'],
+        ['nome_usuario', 'Usuário'],
+        ['quantidade_linhas', 'Registros'],
+        ['arquivo', 'Arquivo'],
+        ['status', 'Status']
+    ],
     gestor: [
         ['data_hora_envio', 'Data / hora'],
         ['id_envio', 'Remessa'],
@@ -134,7 +143,7 @@ function configurarSidebarPorPerfil() {
         colNome.style.display = '';
         btnEnviar.style.display = 'none';
         tipoWrapper.style.display = 'flex';
-        tipoSelect.value = 'relatorios_enviados';
+        tipoSelect.value = 'historico_relatorios';
         return;
     }
 
@@ -145,7 +154,7 @@ function configurarSidebarPorPerfil() {
     colNome.style.display = 'none';
     btnEnviar.style.display = '';
     tipoWrapper.style.display = 'none';
-    tipoSelect.value = 'gestor';
+    tipoSelect.value = 'historico_relatorios';
     document.getElementById('nome-gestor-sidebar').innerText = usuarioLogado.nome || 'Gestor';
 }
 
@@ -192,8 +201,14 @@ async function carregarDadosRelatorios() {
 }
 
 async function carregarRelatorioSelecionado(tipo) {
+    if (tipo === 'historico_relatorios') {
+        relatorioSelecionadoLinhas = montarHistoricoRelatorios();
+        return;
+    }
+
     if (usuarioLogado.cargo !== 'administrador' && tipo !== 'gestor') {
-        tipo = 'gestor';
+        relatorioSelecionadoLinhas = montarHistoricoRelatorios();
+        return;
     }
 
     const respostaApi = await apiGet(`/api/relatorios/${tipo}`);
@@ -206,6 +221,7 @@ async function carregarRelatorioSelecionado(tipo) {
 }
 
 async function montarLinhasRelatorioLocal(tipo) {
+    if (tipo === 'historico_relatorios') return montarHistoricoRelatorios();
     if (tipo === 'gestor') return montarLinhasRelatorio();
     if (tipo === 'relatorios_enviados') return relatoriosEnviados.map(linha => normalizarLinhaRelatorio(tipo, linha));
 
@@ -277,8 +293,7 @@ async function montarLinhasRelatorioLocal(tipo) {
 }
 
 function obterTipoRelatorioAtual() {
-    if (usuarioLogado?.cargo !== 'administrador') return 'gestor';
-    return document.getElementById('tipo-relatorio')?.value || 'relatorios_enviados';
+    return document.getElementById('tipo-relatorio')?.value || 'historico_relatorios';
 }
 
 function normalizarLinhaRelatorio(tipo, linha) {
@@ -286,6 +301,42 @@ function normalizarLinhaRelatorio(tipo, linha) {
         return normalizarRelatorioEnviado(linha);
     }
     return linha;
+}
+
+function montarHistoricoRelatorios() {
+    const historicoLocal = listarHistoricoRelatoriosLocal();
+    const enviados = relatoriosEnviados.map(linha => ({
+        id_relatorio: linha.id_relatorio || `ENVIADO-${linha.enviado_em || linha.data_hora_envio || ''}-${linha.id_envio || ''}`,
+        data_hora: linha.enviado_em || linha.data_hora_envio || '',
+        data_hora_envio: linha.enviado_em || linha.data_hora_envio || '',
+        nome_relatorio: 'Relatório enviado ao administrador',
+        origem: 'Gestor',
+        nome_usuario: linha.nome || linha.nome_usuario || 'Gestor',
+        quantidade_linhas: 1,
+        arquivo: 'relatorios_enviados.csv',
+        status: 'Enviado'
+    }));
+
+    const combinados = [...historicoLocal, ...enviados];
+    const porId = new Map();
+    combinados.forEach(item => {
+        const id = item.id_relatorio || `${item.nome_relatorio}-${item.data_hora}-${item.origem}`;
+        if (!porId.has(id)) porId.set(id, item);
+    });
+
+    return Array.from(porId.values()).sort((a, b) =>
+        String(b.data_hora || b.data_hora_envio || '').localeCompare(String(a.data_hora || a.data_hora_envio || ''))
+    );
+}
+
+function listarHistoricoRelatoriosLocal() {
+    const viaUtilitario = window.OferteReports?.listarHistorico ? window.OferteReports.listarHistorico() : [];
+    if (viaUtilitario.length) return viaUtilitario;
+    try {
+        return JSON.parse(localStorage.getItem('historicoRelatorios') || '[]');
+    } catch (erro) {
+        return [];
+    }
 }
 
 function inicializarEventosRelatorios() {
@@ -441,38 +492,33 @@ async function enviarRelatorioParaAdmin() {
         localStorage.setItem(CHAVE_RELATORIOS_ADMIN, JSON.stringify([...locais, ...enviados]));
     }
 
+    window.OferteReports?.registrarRelatorio({
+        nome: 'Relatório enviado ao administrador',
+        origem: 'Relatórios',
+        arquivo: 'relatorio-enviado-admin.csv',
+        usuario: usuarioLogado,
+        linhas: payload.linhas,
+        colunas: COLUNAS_RELATORIOS.gestor,
+        status: 'Enviado'
+    });
+
     alert('Relatorio enviado para o administrador.');
 }
 
 async function exportarCsvPython() {
     const tipo = obterTipoRelatorioAtual();
-    const params = new URLSearchParams({
-        busca: document.getElementById('busca-relatorio').value.trim(),
-        data_inicial: document.getElementById('data-inicial').value,
-        data_final: document.getElementById('data-final').value
+    const colunas = COLUNAS_RELATORIOS[tipo] || COLUNAS_RELATORIOS.historico_relatorios;
+    const linhas = filtrarLinhas(relatorioSelecionadoLinhas);
+
+    window.OferteReports?.exportarCsv({
+        nome: tipo === 'historico_relatorios' ? 'Histórico de relatórios' : `Relatório ${tipo}`,
+        origem: 'Relatórios',
+        arquivo: `${tipo}.csv`,
+        usuario: usuarioLogado,
+        linhas,
+        colunas,
+        registrar: tipo !== 'historico_relatorios'
     });
-
-    let response;
-    try {
-        response = await fetch(`${API_BASE}/api/relatorios/${tipo}.csv?${params.toString()}`);
-    } catch (erro) {
-        response = null;
-    }
-
-    if (!response?.ok) {
-        alert(`Para exportar via Python, inicie o backend em ${API_BASE}.`);
-        return;
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${tipo}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
 }
 
 async function apiGet(route) {

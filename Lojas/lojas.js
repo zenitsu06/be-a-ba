@@ -245,6 +245,7 @@ function inicializarEventos() {
     });
 
     document.getElementById('busca-loja').addEventListener('input', renderizarTabela);
+    document.getElementById('btn-exportar-lojas')?.addEventListener('click', exportarRelatorioLojas);
 }
 
 async function cadastrarLoja() {
@@ -305,11 +306,7 @@ async function cadastrarLoja() {
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-lojas-corpo');
-    const termo = document.getElementById('busca-loja').value.toLowerCase().trim();
-    const lojasFiltradas = lojas.filter(loja => {
-        const texto = `${loja.codigo_loja} ${loja.nome_da_loja} ${loja.uf}`.toLowerCase();
-        return texto.includes(termo);
-    });
+    const lojasFiltradas = obterLojasVisiveis();
 
     corpo.innerHTML = "";
     document.getElementById('total-lojas').innerText = lojas.length;
@@ -332,6 +329,45 @@ function renderizarTabela() {
     if (!corpo.children.length) {
         corpo.innerHTML = '<tr><td colspan="8">Nenhuma loja encontrada.</td></tr>';
     }
+}
+
+function obterLojasVisiveis() {
+    const termo = document.getElementById('busca-loja').value.toLowerCase().trim();
+    return lojas.filter(loja => {
+        const texto = `${loja.codigo_loja} ${loja.nome_da_loja} ${loja.uf}`.toLowerCase();
+        return texto.includes(termo);
+    });
+}
+
+function exportarRelatorioLojas() {
+    const linhas = obterLojasVisiveis().map(loja => ({
+        codigo_loja: loja.codigo_loja,
+        nome_da_loja: loja.nome_da_loja,
+        uf: loja.uf,
+        funcionario_nome: loja.funcionario_nome || '-',
+        quantidade_minima: loja.quantidade_minima ?? '-',
+        quantidade_recomendada: loja.quantidade_recomendada ?? '-',
+        quantidade_atual: loja['Quantidade atual'] ?? loja.quantidade_atual ?? '-',
+        data_cadastro: formatarData(loja.data_cadastro)
+    }));
+
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatório de lojas',
+        origem: 'Lojas',
+        arquivo: 'lojas.csv',
+        usuario: usuarioLogado,
+        linhas,
+        colunas: [
+            ['codigo_loja', 'Código da loja'],
+            ['nome_da_loja', 'Nome'],
+            ['uf', 'UF'],
+            ['funcionario_nome', 'Funcionário'],
+            ['quantidade_minima', 'Quantidade mínima'],
+            ['quantidade_recomendada', 'Quantidade recomendada'],
+            ['quantidade_atual', 'Quantidade atual'],
+            ['data_cadastro', 'Data de cadastro']
+        ]
+    });
 }
 
 function salvarLojasLocal() {

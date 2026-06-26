@@ -141,6 +141,7 @@ function inicializarEventos() {
 
     document.getElementById('busca-envio').addEventListener('input', renderizarTabela);
     document.getElementById('filtro-status').addEventListener('change', renderizarTabela);
+    document.getElementById('btn-exportar-envios')?.addEventListener('click', exportarRelatorioEnvios);
 }
 
 function prepararModalEnvio() {
@@ -184,7 +185,7 @@ function atualizarDadosLojaSelecionada() {
         return;
     }
 
-    const analise = buscarAnaliseIA(codLoja);
+    const analise = montarAnaliseLoja(codLoja);
     document.getElementById('preview-codigo').innerText = loja.codigo_loja;
     document.getElementById('preview-nome').innerText = loja.nome_da_loja;
     document.getElementById('preview-uf').innerText = loja.uf;
@@ -210,7 +211,7 @@ async function confirmarEnvio() {
         return;
     }
 
-    const analise = buscarAnaliseIA(codLoja);
+    const analise = montarAnaliseLoja(codLoja);
     const novoEnvio = {
         id_envio: document.getElementById('env-codigo').value,
         cod_loja: loja.codigo_loja,
@@ -254,19 +255,9 @@ async function confirmarEnvio() {
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-envios-corpo');
-    const termo = document.getElementById('busca-envio').value.toLowerCase().trim();
-    const filtroStatus = document.getElementById('filtro-status').value;
-
     corpo.innerHTML = "";
 
-    enviosTaloes
-        .map(envio => montarEnvioTabela(envio))
-        .filter(envio => {
-            const textoBusca = `${envio.id_envio} ${envio.lojaTexto} ${envio.data_hora_envio}`.toLowerCase();
-            const passaBusca = textoBusca.includes(termo);
-            const passaStatus = !filtroStatus || envio.status === filtroStatus;
-            return passaBusca && passaStatus;
-        })
+    obterEnviosVisiveis()
         .forEach(envio => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -288,6 +279,21 @@ function renderizarTabela() {
     if (!corpo.children.length) {
         corpo.innerHTML = '<tr><td colspan="9">Nenhum envio encontrado.</td></tr>';
     }
+}
+
+function obterEnviosVisiveis() {
+    const termo = document.getElementById('busca-envio').value.toLowerCase().trim();
+    const filtroStatus = document.getElementById('filtro-status').value;
+
+    return enviosTaloes
+        .map(envio => montarEnvioTabela(envio))
+        .filter(envio => {
+            const textoBusca = `${envio.id_envio} ${envio.lojaTexto} ${envio.data_hora_envio}`.toLowerCase();
+            const passaBusca = textoBusca.includes(termo);
+            const passaStatus = !filtroStatus || envio.status === filtroStatus;
+            return passaBusca && passaStatus;
+        })
+        .sort((a, b) => Number(b.score_prioridade || 0) - Number(a.score_prioridade || 0));
 }
 
 function abrirEdicaoEnvio(idEnvio) {
@@ -315,8 +321,8 @@ function abrirEdicaoEnvio(idEnvio) {
 
 function montarEnvioTabela(envio) {
     const loja = buscarLoja(envio.cod_loja);
-    const analise = buscarAnaliseIA(envio.cod_loja);
-    const prioridade = envio.prioridade_ia || analise.prioridade || "pendente";
+    const analise = montarAnaliseLoja(envio.cod_loja);
+    const prioridade = analise.prioridade || normalizarPrioridadeTexto(envio.prioridade_ia) || "Pendente";
 
     return {
         ...envio,
@@ -328,24 +334,188 @@ function montarEnvioTabela(envio) {
         quantidade_recomendada: envio.quantidade_recomendada || analise.quantidade_sugerida || (loja ? loja.quantidade_recomendada : "-"),
         quantidade_minima: envio.quantidade_minima || analise.quantidade_minima || (loja ? loja.quantidade_minima : "-"),
         prioridade_ia: prioridade,
+        score_prioridade: analise.score_prioridade || 0,
         classePrioridade: classePrioridade(prioridade)
     };
 }
 
 function renderizarSugestaoIA() {
-    document.getElementById('texto-sugestao-ia').innerText =
-        resumoIA?.mensagem || 'Execute python/ia_envio_taloes.py para gerar as recomendações.';
+    document.getElementById('texto-sugestao-ia').innerText = formatarMensagemResumoIA();
 }
 
 function buscarAnaliseIA(codLoja) {
     return analisesIA.find(analise => analise.codigo_loja === codLoja) || {};
 }
 
+function montarAnaliseLoja(codLoja) {
+    const loja = buscarLoja(codLoja);
+    const analise = buscarAnaliseIA(codLoja);
+    if (analise.prioridade) {
+        return {
+            ...analise,
+            prioridade: normalizarPrioridadeTexto(analise.prioridade, analise.classe_css),
+            quantidade_minima: analise.quantidade_minima || loja?.quantidade_minima,
+            quantidade_sugerida: analise.quantidade_sugerida || calcularQuantidadeSugerida(loja)
+        };
+    }
+
+    return calcularPrioridadePorEstoque(loja);
+}
+
+function calcularPrioridadePorEstoque(loja) {
+    if (!loja) return {};
+    const atual = Number(loja['Quantidade atual'] ?? loja.quantidade_atual ?? 0);
+    const minimo = Number(loja.quantidade_minima || 0);
+    const recomendado = Number(loja.quantidade_recomendada || Math.max(minimo * 3, 1));
+    let prioridade = 'Cheio';
+    let score = 10;
+
+    if (atual <= minimo) {
+        prioridade = 'Crítico';
+        score = 100;
+    } else if (atual < recomendado) {
+        prioridade = 'Alerta';
+        score = 80;
+    } else if (atual <= recomendado * 1.15) {
+        prioridade = 'Na média';
+        score = 50;
+    }
+
+    return {
+        codigo_loja: loja.codigo_loja,
+        nome_loja: loja.nome_da_loja,
+        uf: loja.uf,
+        estoque_atual: atual,
+        quantidade_minima: minimo,
+        quantidade_sugerida: calcularQuantidadeSugerida(loja),
+        prioridade,
+        classe_css: classePrioridade(prioridade),
+        score_prioridade: score,
+        mensagem: `Estoque atual ${atual}. Mínimo ${minimo}. Recomendado ${recomendado}. Prioridade ${prioridade}.`
+    };
+}
+
+function calcularQuantidadeSugerida(loja) {
+    if (!loja) return 0;
+    const atual = Number(loja['Quantidade atual'] ?? loja.quantidade_atual ?? 0);
+    const minimo = Number(loja.quantidade_minima || 0);
+    const recomendado = Number(loja.quantidade_recomendada || Math.max(minimo * 3, 1));
+    if (atual <= minimo) return Math.max(recomendado - atual + minimo, minimo);
+    if (atual < recomendado) return Math.max(recomendado - atual, Math.ceil(minimo / 2));
+    if (atual <= recomendado * 1.15) return Math.ceil(recomendado * 0.15);
+    return 0;
+}
+
+function normalizarPrioridadeTexto(prioridade, classe = '') {
+    const valor = normalizarTextoPrioridade(prioridade || classe);
+    if (valor.includes('crit') || valor.includes('prioridade') || valor.includes('alta')) return 'Crítico';
+    if (valor.includes('alert') || valor.includes('baixo')) return 'Alerta';
+    if (valor.includes('média') || valor.includes('media')) return 'Na média';
+    if (valor.includes('cheio') || valor.includes('baixa')) return 'Cheio';
+    return prioridade || '';
+}
+
 function classePrioridade(prioridade) {
-    if (prioridade === "Prioridade") return "alta";
-    if (prioridade === "média") return "media";
-    if (prioridade === "baixa") return "baixa";
+    const valor = normalizarTextoPrioridade(prioridade);
+    if (valor.includes('crit')) return 'critico';
+    if (valor.includes('alert')) return 'alerta';
+    if (valor.includes('média') || valor.includes('media')) return 'media';
+    if (valor.includes('cheio')) return 'cheio';
     return "pendente";
+}
+
+function normalizarTextoPrioridade(valor) {
+    return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function formatarMensagemResumoIA() {
+    if (resumoIA?.mensagem) return resumoIA.mensagem;
+    const criticas = analisesIA.filter(item => normalizarPrioridadeTexto(item.prioridade, item.classe_css) === 'Crítico');
+    const data = new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(new Date());
+    const prioridadeMaxima = criticas.map(item => `${item.nome_loja} (${item.uf})`).join(', ') || '-';
+    return [
+        `Análise concluída em ${data}`,
+        `Quantidade de lojas em estado crítico: ${criticas.length}`,
+        `Prioridade máxima: ${prioridadeMaxima}`
+    ].join('\n');
+}
+
+function exportarRelatorioEnvios() {
+    const linhas = obterEnviosVisiveis();
+    exportarCsvComHistorico({
+        nome: 'Relatório de envios de talões',
+        origem: 'Enviar Talões',
+        arquivo: 'envios-taloes.csv',
+        usuario: usuarioLogado,
+        linhas,
+        colunas: [
+            ['data_hora_envio', 'Data / hora'],
+            ['id_envio', 'Remessa'],
+            ['lojaTexto', 'Loja'],
+            ['quantidade_enviada', 'Qnt. enviada'],
+            ['quantidade_recomendada', 'Recomendada'],
+            ['quantidade_minima', 'Mínima'],
+            ['prioridade_ia', 'Prioridade'],
+            ['status', 'Status']
+        ]
+    });
+}
+
+function exportarCsvComHistorico(config) {
+    document.body.dataset.ultimoRelatorioExportado = config.nome || 'relatorio';
+    registrarHistoricoRelatorio(config);
+    if (window.OferteReports?.exportarCsv) {
+        window.OferteReports.exportarCsv({ ...config, registrar: false });
+        return;
+    }
+
+    const colunas = config.colunas || [];
+    const cabecalho = colunas.map(([, titulo]) => escaparCsv(titulo)).join(';');
+    const corpo = (config.linhas || []).map(linha =>
+        colunas.map(([campo]) => escaparCsv(linha[campo])).join(';')
+    );
+    const blob = new Blob(['\uFEFF' + [cabecalho, ...corpo].join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = config.arquivo || 'relatorio.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function registrarHistoricoRelatorio(config) {
+    const historico = JSON.parse(localStorage.getItem('historicoRelatorios') || '[]');
+    historico.unshift({
+        id_relatorio: `REL-${Date.now()}`,
+        nome_relatorio: config.nome,
+        origem: config.origem,
+        nome_usuario: config.usuario?.nome || 'Usuário',
+        matricula_usuario: config.usuario?.matricula || '',
+        data_hora: formatarDataHora(new Date()),
+        data_hora_envio: formatarDataHora(new Date()),
+        quantidade_linhas: (config.linhas || []).length,
+        arquivo: config.arquivo || 'relatorio.csv',
+        status: 'Exportado',
+        linhas: config.linhas || []
+    });
+    localStorage.setItem('historicoRelatorios', JSON.stringify(historico.slice(0, 200)));
+    document.body.dataset.totalHistoricoRelatorios = String(historico.length);
+}
+
+function escaparCsv(valor) {
+    if (valor === null || valor === undefined) return '""';
+    return `"${String(valor).replace(/"/g, '""')}"`;
 }
 
 async function apiGet(route) {

@@ -367,6 +367,30 @@ textarea:focus {
     border-radius: 8px !important;
 }
 
+.priority-badge.critico {
+    background-color: #5f1216 !important;
+    color: #ffffff !important;
+    border: 1px solid #3f080b !important;
+}
+
+.priority-badge.alerta {
+    background-color: #ffe1de !important;
+    color: #ba1f2a !important;
+    border: 1px solid #ff8f98 !important;
+}
+
+.priority-badge.media {
+    background-color: #fff6bf !important;
+    color: #7d6a00 !important;
+    border: 1px solid #eadf54 !important;
+}
+
+.priority-badge.cheio {
+    background-color: #d8fce5 !important;
+    color: #007b40 !important;
+    border: 1px solid #35d772 !important;
+}
+
 .modal-overlay {
     background-color: rgba(9, 28, 24, 0.48) !important;
     backdrop-filter: blur(3px);

@@ -30,6 +30,7 @@ let lojasRegistradas = [];
 let listaUsuarios = [];
 let perfisUsuarios = [];
 let matriculaEmEdicao = null;
+let usuariosVisiveis = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!validarAcessoPerfis()) return;
@@ -203,6 +204,7 @@ function atualizarCardsMetricas() {
 function renderizarTabelaUsuarios(usuariosFiltrados = listaUsuarios) {
     const corpo = document.getElementById('tabela-usuarios-corpo');
     corpo.innerHTML = "";
+    usuariosVisiveis = usuariosFiltrados;
 
     usuariosFiltrados.forEach(user => {
         const tr = document.createElement('tr');
@@ -424,6 +426,8 @@ function inicializarEventosModal() {
         );
         renderizarTabelaUsuarios(resultado);
     });
+
+    document.getElementById('btn-exportar-usuarios')?.addEventListener('click', exportarRelatorioUsuarios);
 }
 
 function prepararFormularioCadastro() {
@@ -576,6 +580,36 @@ function salvarDadosERefrescar() {
     localStorage.setItem('bancoUsuarios', JSON.stringify(listaUsuarios));
     atualizarCardsMetricas();
     renderizarTabelaUsuarios();
+}
+
+function exportarRelatorioUsuarios() {
+    const linhas = (usuariosVisiveis.length ? usuariosVisiveis : listaUsuarios).map(user => ({
+        matricula: user.matricula,
+        nome: user.nome,
+        email: user.email,
+        cargo: user.cargo,
+        loja: user.loja || '-',
+        status: user.status,
+        atribacoes: (user.atribacoes || []).join(', ')
+    }));
+
+    const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatório de usuários',
+        origem: 'Gerenciar Perfis',
+        arquivo: 'usuarios.csv',
+        usuario,
+        linhas,
+        colunas: [
+            ['matricula', 'Matrícula'],
+            ['nome', 'Nome'],
+            ['email', 'E-mail'],
+            ['cargo', 'Cargo'],
+            ['loja', 'Loja vinculada'],
+            ['status', 'Status'],
+            ['atribacoes', 'Atribuições']
+        ]
+    });
 }
 
 async function apiGet(route) {

@@ -85,15 +85,38 @@
                         <canvas id="pieChart"></canvas>
                     </div>
                 </div>
+            </div>
 
-                <div class="risk-container">
-                    <h2>Lojas com risco</h2>
-                    <ul class="risk-list" id="lista-risco">
-                        <li class="empty-state">Analisando dados...</li>
-                    </ul>
+        </section>
+
+        <section class="admin-insights-grid">
+            <div class="low-stock-table">
+                <div class="section-heading">
+                    <h2>Lojas com estoque baixo</h2>
+                    <span>Apenas estados Crítico e Alerta</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="admin-stock-table">
+                        <thead>
+                            <tr>
+                                <th>Código da loja</th>
+                                <th>Nome</th>
+                                <th>UF</th>
+                                <th>Quantidade recomendada</th>
+                                <th>Quantidade atual</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-estoque-baixo">
+                            <tr><td colspan="5">Analisando estoque...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
+            <div class="ai-suggestion-card">
+                <strong>Sugestão da IA</strong>
+                <p id="texto-ia-admin">Carregando análise preditiva...</p>
+            </div>
         </section>
     </main>
 

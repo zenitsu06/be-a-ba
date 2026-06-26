@@ -90,7 +90,7 @@ function renderizarResumoIA() {
 
     if (prioridade) {
         linhas.push('');
-        linhas.push(`Maior atencao: ${prioridade.nome_loja} (${prioridade.uf}), sugestao de ${prioridade.quantidade_sugerida} taloes e score ${prioridade.score_prioridade}/100.`);
+        linhas.push(`Maior atencao: ${prioridade.nome_loja} (${prioridade.uf}), estado ${normalizarPrioridadeTexto(prioridade.prioridade, prioridade.classe_css)}, sugestao de ${prioridade.quantidade_sugerida} taloes e score ${prioridade.score_prioridade}/100.`);
     }
 
     mensagem.innerText = linhas.join('\n');
@@ -191,7 +191,7 @@ function montarLinhasGestor() {
         const divergencia = recebimento
             ? Math.abs(Number(envio.quantidade_enviada || 0) - Number(recebimento.quantidade_recebida || 0))
             : '-';
-        const prioridade = envio.prioridade_ia || analise.prioridade || 'pendente';
+        const prioridade = normalizarPrioridadeTexto(analise.prioridade || envio.prioridade_ia, analise.classe_css);
 
         return {
             ...envio,
@@ -204,9 +204,10 @@ function montarLinhasGestor() {
             quantidade_minima: envio.quantidade_minima || analise.quantidade_minima || loja?.quantidade_minima || '-',
             prioridade_ia: prioridade,
             classePrioridade: classePrioridade(prioridade),
+            score_prioridade: analise.score_prioridade || 0,
             divergencia
         };
-    });
+    }).sort((a, b) => Number(b.score_prioridade || 0) - Number(a.score_prioridade || 0));
 }
 
 function inicializarEventosGestor() {
@@ -215,6 +216,7 @@ function inicializarEventosGestor() {
     document.getElementById('data-inicial-gestor').addEventListener('change', renderizarTabelaGestor);
     document.getElementById('data-final-gestor').addEventListener('change', renderizarTabelaGestor);
     document.getElementById('btn-gerar-relatorio').addEventListener('click', gerarRelatorioGestor);
+    document.getElementById('btn-exportar-gestor')?.addEventListener('click', exportarRelatorioGestor);
 }
 
 function gerarRelatorioGestor() {
@@ -230,6 +232,14 @@ function gerarRelatorioGestor() {
         matricula_usuario: usuarioLogado.matricula || '',
         linhas
     }));
+    window.OferteReports?.registrarRelatorio({
+        nome: 'Relatório do gestor',
+        origem: 'Dashboard Gestor',
+        arquivo: 'relatorio-gestor.csv',
+        usuario: usuarioLogado,
+        linhas,
+        colunas: colunasRelatorioGestor()
+    });
     window.location.href = './relatorios.html';
 }
 
@@ -257,11 +267,53 @@ function buscarAnaliseIA(codLoja) {
 }
 
 function classePrioridade(prioridade) {
-    const valor = String(prioridade || '').toLowerCase();
-    if (valor.includes('prioridade') || valor.includes('alta')) return 'alta';
+    const valor = normalizarTextoPrioridade(prioridade);
+    if (valor.includes('crit') || valor.includes('prioridade') || valor.includes('alta')) return 'critico';
+    if (valor.includes('alert')) return 'alerta';
     if (valor.includes('media') || valor.includes('média')) return 'media';
-    if (valor.includes('baixa')) return 'baixa';
+    if (valor.includes('cheio') || valor.includes('baixa')) return 'cheio';
     return 'pendente';
+}
+
+function normalizarPrioridadeTexto(prioridade, classe = '') {
+    const valor = normalizarTextoPrioridade(prioridade || classe);
+    if (valor.includes('crit') || valor.includes('prioridade') || valor.includes('alta')) return 'Crítico';
+    if (valor.includes('alert') || valor.includes('baixo')) return 'Alerta';
+    if (valor.includes('média') || valor.includes('media')) return 'Na média';
+    if (valor.includes('cheio') || valor.includes('baixa')) return 'Cheio';
+    return prioridade || 'Pendente';
+}
+
+function normalizarTextoPrioridade(valor) {
+    return String(valor || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function colunasRelatorioGestor() {
+    return [
+        ['data_hora_envio', 'Data / hora'],
+        ['id_envio', 'Remessa'],
+        ['lojaTexto', 'Loja'],
+        ['quantidade_enviada', 'Qnt. enviada'],
+        ['quantidade_recomendada', 'Recomendada'],
+        ['quantidade_minima', 'Mínima'],
+        ['prioridade_ia', 'Prioridade'],
+        ['divergencia', 'Divergência']
+    ];
+}
+
+function exportarRelatorioGestor() {
+    const linhas = obterLinhasVisiveisGestor();
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatório do gestor',
+        origem: 'Dashboard Gestor',
+        arquivo: 'relatorio-gestor.csv',
+        usuario: usuarioLogado,
+        linhas,
+        colunas: colunasRelatorioGestor()
+    });
 }
 
 async function apiGet(route) {

@@ -1,6 +1,7 @@
 const API_BASE = window.OFERTE_CONFIG?.API_BASE || 'http://localhost:8000';
 const CHAVE_TALOES_LOCAL = 'taloesJsonAtualizado';
 const CHAVE_LOJAS_LOCAL = 'lojasJsonAtualizado';
+const CHAVE_HISTORICO_ESTOQUE_LOCAL = 'historicoEstoqueLojas';
 const TEMPO_INATIVIDADE_MS = 10 * 60 * 1000;
 const tokenSessaoUsuario = Math.random().toString(36).substring(2);
 
@@ -278,6 +279,7 @@ async function editarEstoqueAtual() {
         return;
     }
 
+    const estoqueAnterior = estoqueAtual;
     const respostaApi = await apiPost('/api/estoque', {
         cod_loja: lojaAtual.codigo_loja,
         quantidade_atual: quantidade
@@ -291,6 +293,7 @@ async function editarEstoqueAtual() {
         salvarLojasLocal();
     }
 
+    registrarReducaoEstoque(estoqueAnterior, quantidade);
     aplicarContextoUsuario();
     renderizarPainelEstoque();
     alert('Estoque atualizado.');
@@ -298,12 +301,7 @@ async function editarEstoqueAtual() {
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-corpo');
-    const termo = document.getElementById('input-busca').value.toLowerCase().trim();
-    const statusFiltro = document.getElementById('filtro-status').value.toLowerCase();
-    const linhas = montarLinhasRecebimento().filter(item => {
-        const texto = `${item.data} ${item.remessa} ${item.lojista} ${item.email}`.toLowerCase();
-        return texto.includes(termo) && (!statusFiltro || item.status === statusFiltro);
-    });
+    const linhas = obterLinhasVisiveisUsuario();
 
     corpo.innerHTML = '';
 
@@ -341,6 +339,15 @@ function renderizarTabela() {
     if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="8">Nenhuma remessa encontrada para esta loja.</td></tr>';
     }
+}
+
+function obterLinhasVisiveisUsuario() {
+    const termo = document.getElementById('input-busca').value.toLowerCase().trim();
+    const statusFiltro = document.getElementById('filtro-status').value.toLowerCase();
+    return montarLinhasRecebimento().filter(item => {
+        const texto = `${item.data} ${item.remessa} ${item.lojista} ${item.email}`.toLowerCase();
+        return texto.includes(termo) && (!statusFiltro || item.status === statusFiltro);
+    });
 }
 
 function montarLinhasRecebimento() {
@@ -480,6 +487,22 @@ function salvarLojasLocal() {
     }));
 }
 
+function registrarReducaoEstoque(estoqueAnterior, estoqueNovo) {
+    if (!lojaAtual || Number(estoqueNovo) >= Number(estoqueAnterior)) return;
+    const historico = JSON.parse(localStorage.getItem(CHAVE_HISTORICO_ESTOQUE_LOCAL) || '[]');
+    historico.unshift({
+        codigo_loja: lojaAtual.codigo_loja,
+        loja: lojaAtual.nome_da_loja,
+        uf: lojaAtual.uf,
+        estoque_anterior: Number(estoqueAnterior),
+        estoque_novo: Number(estoqueNovo),
+        quantidade_entregue: Number(estoqueAnterior) - Number(estoqueNovo),
+        matricula_usuario: usuarioLogado.matricula || '',
+        atualizado_em: formatarDataHoraStorage(new Date())
+    });
+    localStorage.setItem(CHAVE_HISTORICO_ESTOQUE_LOCAL, JSON.stringify(historico.slice(0, 200)));
+}
+
 function gerarCodigoRecebimento() {
     const ano = new Date().getFullYear();
     const maior = recebimentosTaloes.reduce((valor, recebimento) => {
@@ -490,27 +513,23 @@ function gerarCodigoRecebimento() {
 }
 
 async function exportarCsvPython() {
-    let response = null;
-    try {
-        response = await fetch(`${API_BASE}/api/relatorios/recebimentos.csv`);
-    } catch (erro) {
-        response = null;
-    }
-
-    if (!response?.ok) {
-        alert(`Para exportar via Python, inicie o backend em ${API_BASE}.`);
-        return;
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'recebimentos.csv';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatório de recebimentos',
+        origem: 'Painel Lojista',
+        arquivo: 'recebimentos.csv',
+        usuario: usuarioLogado,
+        linhas: obterLinhasVisiveisUsuario(),
+        colunas: [
+            ['data', 'Data / hora'],
+            ['remessa', 'Remessa'],
+            ['lojista', 'Lojista'],
+            ['email', 'E-mail'],
+            ['recebidos', 'Qnt. recebida'],
+            ['divergencia', 'Divergência'],
+            ['status', 'Status'],
+            ['obs', 'Observações']
+        ]
+    });
 }
 
 async function apiGet(route) {
