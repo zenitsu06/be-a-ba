@@ -18,19 +18,133 @@ import json
 import os
 import sys
 from datetime import datetime, timedelta
-import random
 
 # ── CAMINHOS ────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
 LOJAS_PATH  = os.path.join(BASE_DIR, '..', 'dados', 'lojas.json')
 TALOES_PATH = os.path.join(BASE_DIR, '..', 'dados', 'taloes.json')
 SAIDA_PATH  = os.path.join(BASE_DIR, '..', 'dados', 'ia_envio_taloes.json')
+NODE_ENV_PATH = os.path.join(PROJECT_DIR, 'backend-node', '.env')
 
 
 # ── CARREGAR DADOS ───────────────────────────────────────────
 def carregar_json(caminho):
     with open(caminho, 'r', encoding='utf-8') as f:
         return json.load(f)
+
+
+def carregar_env_node():
+    if not os.path.exists(NODE_ENV_PATH):
+        return
+    with open(NODE_ENV_PATH, 'r', encoding='utf-8') as arquivo:
+        for linha in arquivo:
+            texto = linha.strip()
+            if not texto or texto.startswith('#') or '=' not in texto:
+                continue
+            chave, valor = texto.split('=', 1)
+            os.environ.setdefault(chave.strip(), valor.strip().strip('"').strip("'"))
+
+
+def conectar_postgres():
+    carregar_env_node()
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError:
+        return None
+
+    dsn = os.getenv('DATABASE_URL') or os.getenv('OFERTE_DATABASE_URL')
+    if dsn:
+        return psycopg.connect(dsn, row_factory=dict_row)
+
+    senha = os.getenv('DB_PASSWORD') or os.getenv('OFERTE_DB_PASSWORD') or ''
+    senha_vazia_liberada = os.getenv('DB_ALLOW_EMPTY_PASSWORD') == '1'
+    if not senha and not senha_vazia_liberada:
+        return None
+
+    return psycopg.connect(
+        host=os.getenv('DB_HOST') or os.getenv('OFERTE_DB_HOST') or 'localhost',
+        port=int(os.getenv('DB_PORT') or os.getenv('OFERTE_DB_PORT') or 5432),
+        dbname=os.getenv('DB_NAME') or os.getenv('OFERTE_DB_NAME') or 'Oferte_e_ganhe',
+        user=os.getenv('DB_USER') or os.getenv('OFERTE_DB_USER') or 'postgres',
+        password=senha,
+        row_factory=dict_row,
+    )
+
+
+def carregar_dados_banco():
+    conexao = conectar_postgres()
+    if not conexao:
+        return None
+
+    with conexao:
+        with conexao.cursor() as cursor:
+            cursor.execute("""
+                SELECT codigo_loja, nome_da_loja, uf, quantidade_minima,
+                       quantidade_recomendada, quantidade_atual
+                FROM public.vw_lojas_api
+                ORDER BY codigo_loja
+            """)
+            lojas_api = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT id_envio, cod_loja, data_hora_envio, quantidade_enviada
+                FROM public.vw_envios_api
+                ORDER BY data_hora_envio
+            """)
+            envios = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT id_recebimento, id_envio, cod_loja, data_hora_recebimento,
+                       quantidade_recebida, quantidade_divergencia
+                FROM public.vw_recebimentos_api
+                ORDER BY data_hora_recebimento
+            """)
+            recebimentos = cursor.fetchall()
+
+    lojas = []
+    estoque_lojas = []
+    for row in lojas_api:
+        lojas.append({
+            'codigo_loja': row['codigo_loja'],
+            'nome_da_loja': row['nome_da_loja'],
+            'uf': row.get('uf'),
+            'quantidade_minima': int(row.get('quantidade_minima') or 0),
+            'quantidade_recomendada': int(row.get('quantidade_recomendada') or 0),
+        })
+        estoque_lojas.append({
+            'codigo_loja': row['codigo_loja'],
+            'quantidade_atual': int(row.get('quantidade_atual') or 0),
+        })
+
+    return {
+        'origem': 'postgres',
+        'lojas': lojas,
+        'estoque_lojas': estoque_lojas,
+        'envios': [dict(row) for row in envios],
+        'recebimentos': [dict(row) for row in recebimentos],
+    }
+
+
+def carregar_dados_json():
+    dados_lojas = carregar_json(LOJAS_PATH)
+    dados_taloes = carregar_json(TALOES_PATH)
+    return {
+        'origem': 'json',
+        'lojas': dados_lojas.get('lojas', []),
+        'estoque_lojas': dados_lojas.get('estoque_lojas', []),
+        'envios': dados_taloes.get('envios_taloes', []),
+        'recebimentos': dados_taloes.get('recebimentos_taloes', []),
+    }
+
+
+def carregar_dados():
+    try:
+        return carregar_dados_banco() or carregar_dados_json()
+    except Exception as erro:
+        print(f"Aviso: falha ao carregar dados do banco ({erro}). Usando JSON local.")
+        return carregar_dados_json()
 
 
 def valor_deterministico(codigo, minimo, maximo):
@@ -466,6 +580,77 @@ def gerar_json_ia(lojas, estoque_lojas, envios, recebimentos):
     return saida
 
 
+def nivel_banco(prioridade):
+    mapa = {
+        'Crítico': 'CRITICO',
+        'Alerta': 'ALERTA',
+        'Na média': 'NA_MEDIA',
+        'Cheio': 'CHEIO',
+    }
+    return mapa.get(prioridade, prioridade)
+
+
+def salvar_resultado_banco(resultado):
+    conexao = conectar_postgres()
+    if not conexao:
+        return False
+
+    with conexao:
+        with conexao.cursor() as cursor:
+            cursor.execute("DELETE FROM public.analises_ia_envios WHERE tipo_analise = 'ENVIO_TALOES'")
+            for analise in resultado.get('analises', []):
+                cursor.execute("""
+                    INSERT INTO public.analises_ia_envios (
+                        cod_loja, tipo_analise, nivel, prioridade,
+                        score_prioridade, mensagem, dados
+                    )
+                    VALUES (%s, 'ENVIO_TALOES', %s, %s, %s, %s, %s::jsonb)
+                """, (
+                    analise.get('codigo_loja'),
+                    nivel_banco(analise.get('prioridade')),
+                    analise.get('prioridade'),
+                    int(analise.get('score_prioridade') or 0),
+                    analise.get('mensagem'),
+                    json.dumps(analise, ensure_ascii=False),
+                ))
+
+            cursor.execute("""
+                DELETE FROM public.anomalias_recebimento
+                WHERE tipo IN ('divergencia_recebimento', 'volume_alto_baixa_conversao')
+            """)
+            for anomalia in resultado.get('anomalias_recebimento', []):
+                cursor.execute("""
+                    INSERT INTO public.anomalias_recebimento (
+                        cod_loja, tipo, severidade, descricao, recomendacao, status
+                    )
+                    VALUES (%s, %s, %s, %s, %s, 'aberta')
+                """, (
+                    anomalia.get('codigo_loja'),
+                    anomalia.get('tipo'),
+                    anomalia.get('severidade', 'media'),
+                    anomalia.get('descricao'),
+                    anomalia.get('recomendacao'),
+                ))
+
+            cursor.execute("DELETE FROM public.notificacoes_workplace WHERE status = 'simulado'")
+            for notificacao in resultado.get('notificacoes_workplace', []):
+                cursor.execute("""
+                    INSERT INTO public.notificacoes_workplace (
+                        canal, destino, cod_loja, mensagem, nivel, status, enviado_em
+                    )
+                    VALUES (%s, %s, %s, %s, %s, 'simulado', %s)
+                """, (
+                    notificacao.get('canal', 'Workplace'),
+                    notificacao.get('destino'),
+                    notificacao.get('codigo_loja'),
+                    notificacao.get('mensagem'),
+                    notificacao.get('nivel'),
+                    notificacao.get('enviado_em'),
+                ))
+
+    return True
+
+
 # ── MAIN ─────────────────────────────────────────────────────
 if __name__ == '__main__':
     if hasattr(sys.stdout, 'reconfigure'):
@@ -473,14 +658,13 @@ if __name__ == '__main__':
 
     print("=== IA Envio Talões — Iniciando análise ===\n")
 
-    dados_lojas  = carregar_json(LOJAS_PATH)
-    dados_taloes = carregar_json(TALOES_PATH)
+    dados = carregar_dados()
+    lojas = dados['lojas']
+    estoque_lojas = dados['estoque_lojas']
+    envios = dados['envios']
+    recebimentos = dados['recebimentos']
 
-    lojas         = dados_lojas.get('lojas', [])
-    estoque_lojas = dados_lojas.get('estoque_lojas', [])
-    envios        = dados_taloes.get('envios_taloes', [])
-    recebimentos  = dados_taloes.get('recebimentos_taloes', [])
-
+    print(f"Origem dos dados:   {dados['origem']}")
     print(f"Lojas carregadas:  {len(lojas)}")
     print(f"Envios carregados: {len(envios)}")
     print(f"Recebimentos carregados: {len(recebimentos)}")
@@ -492,6 +676,11 @@ if __name__ == '__main__':
         json.dump(resultado, f, ensure_ascii=False, indent=2)
 
     print(f"Arquivo gerado: {SAIDA_PATH}\n")
+    try:
+        if salvar_resultado_banco(resultado):
+            print("Resultado salvo no banco de dados.\n")
+    except Exception as erro:
+        print(f"Aviso: JSON gerado, mas nao foi possivel salvar a IA no banco ({erro}).\n")
     print("=== RESUMO ===")
     print(resultado['resumo']['mensagem'])
     print("\n=== ALERTAS RF11 ===")

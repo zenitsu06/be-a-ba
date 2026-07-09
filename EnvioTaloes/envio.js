@@ -111,7 +111,7 @@ async function carregarResultadoPythonIA() {
     } catch (erro) {
         analisesIA = [];
         resumoIA = {
-            mensagem: 'Resultado de IA não encontrado. Execute python/ia_envio_taloes.py para gerar dados/ia_envio_taloes.json.'
+            mensagem: 'Resultado de IA não encontrado. Inicie o backend Node e recalcule a IA pela rota /api/ia/envio-taloes/recalcular.'
         };
     }
 }
@@ -193,7 +193,7 @@ function atualizarDadosLojaSelecionada() {
     document.getElementById('env-minima').value = analise.quantidade_minima || loja.quantidade_minima;
     document.getElementById('env-prioridade').value = analise.prioridade || "pendente";
     document.getElementById('env-quantidade').value = analise.quantidade_sugerida || loja.quantidade_recomendada;
-    document.getElementById('env-insight').innerText = analise.mensagem || "Execute o script Python para gerar a análise desta loja.";
+    document.getElementById('env-insight').innerText = analise.mensagem || "Recalcule a IA pelo backend Node para gerar a análise desta loja.";
 }
 
 async function confirmarEnvio() {
@@ -225,7 +225,7 @@ async function confirmarEnvio() {
         quantidade_minima: analise.quantidade_minima || loja.quantidade_minima,
         prioridade_ia: analise.prioridade || "pendente",
         status: document.getElementById('env-status').value || "Pendente",
-        insight_ia: analise.mensagem || "Análise Python não encontrada para esta loja."
+        insight_ia: analise.mensagem || "Análise de IA não encontrada para esta loja."
     };
 
     if (envioEmEdicaoId) {

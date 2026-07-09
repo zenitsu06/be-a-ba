@@ -1,0 +1,31 @@
+{
+  "name": "be-a-ba",
+  "version": "1.0.0",
+  "description": "Sistema web para controle de envio, recebimento, estoque e relatorios de taloes.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zenitsu06/be-a-ba.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zenitsu06/be-a-ba/issues"
+  },
+  "homepage": "https://github.com/zenitsu06/be-a-ba#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

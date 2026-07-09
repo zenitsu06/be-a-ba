@@ -4,23 +4,23 @@ Sistema web para controle de envio, recebimento, estoque e relatorios de taloes.
 
 ## Como rodar
 
-Frontend pelo Go Live:
+Aplicacao completa pelo backend Node:
+
+```powershell
+cd "C:\Users\kaua\Downloads\be-a-ba\backend-node"
+npm.cmd start
+```
+
+Depois acesse:
 
 ```text
-http://localhost:5502/login/login.html
+http://localhost:8000/login/login.html
 ```
 
-Backend Python:
+Antes de rodar pela primeira vez, copie o arquivo de ambiente e configure a senha do PostgreSQL:
 
 ```powershell
-cd "C:\Users\kaua\OneDrive\Documentos\be-a-ba"
-python backend\server.py
-```
-
-Se o Windows usar o launcher do Python:
-
-```powershell
-py backend\server.py
+copy .env.example .env
 ```
 
 ## Estrutura
@@ -34,17 +34,17 @@ login/              Autenticacao e recuperacao de senha
 Lojas/              Cadastro de lojas e vinculo com funcionarios
 usuario/            Tela do lojista para recebimento e estoque
 shared/             CSS/JS compartilhados entre telas
-backend/            Servidor Python, rotas, servicos e armazenamento JSON
-dados/              Base local JSON usada pelo prototipo
-python/             Scripts obrigatorios de IA em Python
-relatorios/         CSVs exportados pelo backend
+backend-node/       Backend Node.js/Express conectado ao PostgreSQL
+dados/              Arquivos auxiliares gerados pela IA e fallback local
+python/             IA em Python para RF11, RF11-IA e RF12-IA
+relatorios/         CSVs exportados pelo backend Node
 ```
 
 ## Arquivos compartilhados
 
 - `shared/ui-refresh.css`: tema visual global branco/verde.
 - `shared/app-config.js`: configuracao central do frontend, incluindo URL do backend.
-- `shared/chatbot.js`: assistente conversacional conectado ao backend Python.
+- `shared/chatbot.js`: assistente conversacional conectado ao backend Node.
 
 Para trocar a URL do backend sem editar os scripts, execute no console do navegador:
 
