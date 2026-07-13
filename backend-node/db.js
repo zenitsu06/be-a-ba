@@ -18,7 +18,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || process.env.OFERTE_DATABASE_URL || undefined,
   host: hasDatabaseUrl ? undefined : process.env.DB_HOST || process.env.OFERTE_DB_HOST || 'localhost',
   port: hasDatabaseUrl ? undefined : toInt(process.env.DB_PORT || process.env.OFERTE_DB_PORT, 5432),
-  database: hasDatabaseUrl ? undefined : process.env.DB_NAME || process.env.OFERTE_DB_NAME || 'Oferte_e_ganhe',
+  database: hasDatabaseUrl ? undefined : process.env.DB_NAME || process.env.OFERTE_DB_NAME || 'oferte_e_ganhe',
   user: hasDatabaseUrl ? undefined : process.env.DB_USER || process.env.OFERTE_DB_USER || 'postgres',
   password: hasDatabaseUrl ? undefined : password,
   max: toInt(process.env.DB_POOL_MAX || process.env.OFERTE_DB_POOL_MAX, 5),

@@ -187,17 +187,27 @@ function renderizarTabelaEstoqueBaixo() {
 
 function renderizarSugestaoIA() {
     const texto = document.getElementById('texto-ia-admin');
-    if (resumoIA?.mensagem) {
-        texto.innerText = resumoIA.mensagem;
+    const criticasBase = obterLojasEstoqueBaixo()
+        .filter(loja => loja.estado_estoque === 'Crítico');
+    const criticas = criticasBase.slice(0, 8);
+
+    if (!criticasBase.length) {
+        texto.innerText = [
+            `Análise concluída em ${formatarDataHoraVisual(new Date())}`,
+            'Nenhuma loja em estado crítico no momento.',
+            'Não há reposição urgente recomendada pela IA.'
+        ].join('\n');
         return;
     }
 
-    const criticas = obterLojasEstoqueBaixo().filter(loja => loja.estado_estoque === 'Crítico');
-    const prioridadeMaxima = criticas.map(loja => `${loja.nome_da_loja} (${loja.uf})`).join(', ') || '-';
+    const prioridadeMaxima = criticas.map(loja => `${loja.nome_da_loja} (${loja.uf || '-'})`).join(', ');
+    const ocultas = criticasBase.length > criticas.length
+        ? `\n+ ${criticasBase.length - criticas.length} loja(s) crítica(s) fora da prévia.`
+        : '';
     texto.innerText = [
         `Análise concluída em ${formatarDataHoraVisual(new Date())}`,
-        `Quantidade de lojas em estado crítico: ${criticas.length}`,
-        `Prioridade máxima: ${prioridadeMaxima}`
+        `Quantidade de lojas em estado crítico: ${criticasBase.length}`,
+        `Reposição urgente: ${prioridadeMaxima}${ocultas}`
     ].join('\n');
 }
 
@@ -205,10 +215,12 @@ function obterLojasEstoqueBaixo() {
     return lojasDashboard
         .map(loja => {
             const analise = buscarAnaliseIA(loja.codigo_loja);
-            const estado = normalizarPrioridadeTexto(analise.prioridade, analise.classe_css) || calcularEstadoEstoque(loja);
+            const quantidadeAtual = Number(loja.quantidade_atual ?? loja['Quantidade atual'] ?? analise.estoque_atual ?? 0);
+            const estado = calcularEstadoEstoque({ ...loja, quantidade_atual: quantidadeAtual })
+                || normalizarPrioridadeTexto(analise.prioridade, analise.classe_css);
             return {
                 ...loja,
-                quantidade_atual: Number(analise.estoque_atual ?? loja.quantidade_atual ?? loja['Quantidade atual'] ?? 0),
+                quantidade_atual: quantidadeAtual,
                 estado_estoque: estado
             };
         })
