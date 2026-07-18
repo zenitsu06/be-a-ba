@@ -4,6 +4,8 @@
   "description": "Sistema web para controle de envio, recebimento, estoque e relatorios de taloes.",
   "main": "index.js",
   "scripts": {
+    "dev": "npm --prefix backend-node run dev",
+    "start": "npm --prefix backend-node start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

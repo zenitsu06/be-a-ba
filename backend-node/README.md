@@ -3,6 +3,34 @@
 Backend oficial do projeto em Express/Node.js, mantendo as rotas `/api/...` usadas pelo frontend.
 Python permanece apenas em `../python/ia_envio_taloes.py` para executar a IA.
 
+## Arquitetura em camadas
+
+Fluxo principal:
+
+```text
+Frontend -> routes/controllers -> services -> repositories -> PostgreSQL
+```
+
+Estrutura:
+
+```text
+src/
+  config/          variaveis, CORS, caminhos e configuracoes globais
+  database/        conexao com PostgreSQL e transacoes
+  middlewares/     async route, 404 e tratamento central de erro
+  repositories/    comandos SQL e acesso ao banco
+  routes/          controllers HTTP e HUB de rotas
+  services/        regras de negocio
+  utils/           normalizadores, CSV, AppError e helpers
+  server.js        montagem do Express e inicializacao
+```
+
+O arquivo `server.js` da raiz do `backend-node` foi mantido como bootstrap para preservar:
+
+```powershell
+npm start
+```
+
 ## Configurar
 
 Copie `.env.example` para `.env` e preencha a senha do PostgreSQL:
@@ -22,6 +50,8 @@ DB_USER=postgres
 DB_PASSWORD=sua_senha
 DB_POOL_MAX=5
 PYTHON_BIN=C:\Users\kaua\AppData\Local\Programs\Python\Python313\python.exe
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
 ```
 
 Se o seu Postgres local nao usa senha, defina:
@@ -33,13 +63,13 @@ DB_ALLOW_EMPTY_PASSWORD=1
 ## Rodar
 
 ```powershell
-npm.cmd start
+npm.cmd run dev
 ```
 
-Ou em modo desenvolvimento:
+Ou em modo normal:
 
 ```powershell
-npm.cmd run dev
+npm.cmd start
 ```
 
 Depois acesse:
@@ -60,3 +90,7 @@ http://localhost:8000/login/login.html
 - `GET /api/recebimentos`
 - `POST /api/recebimentos`
 - `POST /api/ia/envio-taloes/recalcular`
+
+## OpenRouter
+
+A estrutura ja esta preparada para receber `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` pelo `.env`. O token nao foi colocado no codigo porque ele precisa ficar protegido e sera informado depois.
