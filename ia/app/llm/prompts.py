@@ -13,7 +13,7 @@ def build_insight_prompt(
     calculos: dict[str, Any],
     observacoes: str | None,
 ) -> str:
-    payload = {
+    payload: dict[str, Any] = {
         "indicador_semantic_layer": indicador,
         "periodo_inicio": periodo_inicio,
         "periodo_fim": periodo_fim,
@@ -29,4 +29,3 @@ def build_insight_prompt(
         "nivel_confianca deve ser baixo, medio ou alto. JSON de entrada: "
         f"{compact_payload}"
     )
-

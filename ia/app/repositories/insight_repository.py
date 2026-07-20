@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol, cast
 
 from psycopg.rows import dict_row
 
@@ -9,7 +9,7 @@ from app.core.database import get_ia_pool
 from app.schemas.insights import InsightGerado, UsoTokens
 
 
-class StoredInsight(dict):
+class StoredInsight(dict[str, Any]):
     pass
 
 
@@ -103,7 +103,7 @@ class PostgresInsightRepository:
                 row = cur.fetchone()
                 if row is None:
                     return None
-                return _row_to_stored_insight(row)
+                return _row_to_stored_insight(cast(Mapping[str, Any], row))
 
     def save(
         self,
@@ -179,7 +179,9 @@ class PostgresInsightRepository:
                     ),
                 )
                 row = cur.fetchone()
-                return _row_to_stored_insight(row)
+                if row is None:
+                    raise RuntimeError("Insight salvo, mas nenhuma linha foi retornada pelo PostgreSQL.")
+                return _row_to_stored_insight(cast(Mapping[str, Any], row))
 
 
 _memory_repository = InMemoryInsightRepository()
@@ -191,7 +193,7 @@ def get_insight_repository() -> InsightRepository:
     return PostgresInsightRepository()
 
 
-def _row_to_stored_insight(row: dict[str, Any]) -> StoredInsight:
+def _row_to_stored_insight(row: Mapping[str, Any]) -> StoredInsight:
     usage = {
         "prompt_tokens": row.get("prompt_tokens"),
         "completion_tokens": row.get("completion_tokens"),
@@ -214,4 +216,3 @@ def _json(value: dict[str, Any]) -> str:
     import json
 
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
-

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping, Sequence, cast
 
 import requests
 
@@ -112,29 +112,33 @@ class OpenRouterClient:
         if not response.ok:
             raise OpenRouterError(response.status_code, _extract_error_message(response))
 
-        data = response.json()
-        usage = data.get("usage") or {}
-        choices = data.get("choices") or []
-        first_choice = choices[0] if choices else {}
-        message = first_choice.get("message") or {}
+        data = cast(Mapping[str, Any], response.json())
+        raw_usage = data.get("usage")
+        usage = raw_usage if isinstance(raw_usage, Mapping) else {}
+        raw_choices = data.get("choices")
+        choices = raw_choices if isinstance(raw_choices, Sequence) and not isinstance(raw_choices, str) else []
+        raw_first_choice = choices[0] if choices else {}
+        first_choice = raw_first_choice if isinstance(raw_first_choice, Mapping) else {}
+        raw_message = first_choice.get("message")
+        message = raw_message if isinstance(raw_message, Mapping) else {}
 
         return LlmResult(
             model_requested=self.model,
-            model_returned=data.get("model"),
+            model_returned=_as_optional_str(data.get("model")),
             content=str(message.get("content") or ""),
             usage=UsoTokens(
-                prompt_tokens=usage.get("prompt_tokens"),
-                completion_tokens=usage.get("completion_tokens"),
-                total_tokens=usage.get("total_tokens"),
+                prompt_tokens=_as_optional_int(usage.get("prompt_tokens")),
+                completion_tokens=_as_optional_int(usage.get("completion_tokens")),
+                total_tokens=_as_optional_int(usage.get("total_tokens")),
             ),
         )
 
 
 def _parse_insight(content: str) -> InsightGerado:
     try:
-        data = json.loads(content)
+        data = cast(dict[str, Any], json.loads(content))
     except json.JSONDecodeError:
-        data = {
+        data: dict[str, Any] = {
             "titulo": "Insight gerado",
             "resumo": content.strip(),
             "recomendacao": "Validar a recomendacao com os indicadores oficiais antes de agir.",
@@ -148,7 +152,7 @@ def _parse_insight(content: str) -> InsightGerado:
 
 def _extract_error_message(response: requests.Response) -> str:
     try:
-        data = response.json()
+        data = cast(Mapping[str, Any], response.json())
     except ValueError:
         return response.text[:500] or "Resposta sem corpo."
 
@@ -159,3 +163,17 @@ def _extract_error_message(response: requests.Response) -> str:
         return error
     return str(data)[:500]
 
+
+def _as_optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)
