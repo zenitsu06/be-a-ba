@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from typing import Any, Mapping, Sequence, cast
 
 import requests
@@ -13,12 +12,19 @@ from app.schemas.insights import InsightGerado, UsoTokens
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
-@dataclass(frozen=True)
 class LlmResult:
-    model_requested: str
-    model_returned: str | None
-    content: str
-    usage: UsoTokens
+    def __init__(
+        self,
+        *,
+        model_requested: str,
+        model_returned: str | None,
+        content: str,
+        usage: UsoTokens,
+    ) -> None:
+        self.model_requested = model_requested
+        self.model_returned = model_returned
+        self.content = content
+        self.usage = usage
 
 
 class OpenRouterError(RuntimeError):
@@ -112,20 +118,16 @@ class OpenRouterClient:
         if not response.ok:
             raise OpenRouterError(response.status_code, _extract_error_message(response))
 
-        data = cast(Mapping[str, Any], response.json())
-        raw_usage = data.get("usage")
-        usage = raw_usage if isinstance(raw_usage, Mapping) else {}
-        raw_choices = data.get("choices")
-        choices = raw_choices if isinstance(raw_choices, Sequence) and not isinstance(raw_choices, str) else []
-        raw_first_choice = choices[0] if choices else {}
-        first_choice = raw_first_choice if isinstance(raw_first_choice, Mapping) else {}
-        raw_message = first_choice.get("message")
-        message = raw_message if isinstance(raw_message, Mapping) else {}
+        data = _response_json(response)
+        usage = _get_mapping(data, "usage")
+        choices = _get_sequence(data, "choices")
+        first_choice = _as_mapping(choices[0]) if choices else _empty_mapping()
+        message = _get_mapping(first_choice, "message")
 
         return LlmResult(
             model_requested=self.model,
             model_returned=_as_optional_str(data.get("model")),
-            content=str(message.get("content") or ""),
+            content=_as_optional_str(message.get("content")) or "",
             usage=UsoTokens(
                 prompt_tokens=_as_optional_int(usage.get("prompt_tokens")),
                 completion_tokens=_as_optional_int(usage.get("completion_tokens")),
@@ -152,16 +154,44 @@ def _parse_insight(content: str) -> InsightGerado:
 
 def _extract_error_message(response: requests.Response) -> str:
     try:
-        data = cast(Mapping[str, Any], response.json())
+        data = _response_json(response)
     except ValueError:
         return response.text[:500] or "Resposta sem corpo."
 
-    error = data.get("error")
-    if isinstance(error, dict):
-        return str(error.get("message") or error)
+    error: object = data.get("error")
+    if isinstance(error, Mapping):
+        error_data = cast(Mapping[str, Any], error)
+        return _as_optional_str(error_data.get("message")) or str(error_data)
     if isinstance(error, str):
         return error
     return str(data)[:500]
+
+
+def _response_json(response: requests.Response) -> Mapping[str, Any]:
+    raw: object = response.json()
+    return _as_mapping(raw)
+
+
+def _as_mapping(value: object) -> Mapping[str, Any]:
+    if isinstance(value, Mapping):
+        return cast(Mapping[str, Any], value)
+    return _empty_mapping()
+
+
+def _get_mapping(data: Mapping[str, Any], key: str) -> Mapping[str, Any]:
+    raw: object = data.get(key)
+    return _as_mapping(raw)
+
+
+def _get_sequence(data: Mapping[str, Any], key: str) -> Sequence[Any]:
+    raw: object = data.get(key)
+    if isinstance(raw, Sequence) and not isinstance(raw, str):
+        return cast(Sequence[Any], raw)
+    return ()
+
+
+def _empty_mapping() -> Mapping[str, Any]:
+    return {}
 
 
 def _as_optional_int(value: Any) -> int | None:
