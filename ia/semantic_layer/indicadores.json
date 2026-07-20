@@ -1,0 +1,219 @@
+[
+  {
+    "indicador": "Estoque atual",
+    "definicao_formula": "Valor vigente de quantidade_atual por loja.",
+    "fonte": "estoque_lojas",
+    "nivel": "1",
+    "uso": "Dashboard e alertas",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Estoque minimo",
+    "definicao_formula": "Limite operacional minimo cadastrado.",
+    "fonte": "estoque_lojas",
+    "nivel": "1",
+    "uso": "Alerta deterministico",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Quantidade recomendada atual",
+    "definicao_formula": "Valor recomendado cadastrado no sistema.",
+    "fonte": "estoque_lojas",
+    "nivel": "1",
+    "uso": "Comparacao e auditoria",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Gap para minimo",
+    "definicao_formula": "quantidade_atual - quantidade_minima.",
+    "fonte": "estoque_lojas",
+    "nivel": "1",
+    "uso": "Risco imediato",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Gap para recomendado",
+    "definicao_formula": "quantidade_atual - quantidade_recomendada.",
+    "fonte": "estoque_lojas",
+    "nivel": "1",
+    "uso": "Reposicao basica",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Total enviado",
+    "definicao_formula": "Soma de quantidade_enviada no periodo.",
+    "fonte": "envios_taloes",
+    "nivel": "1",
+    "uso": "Logistica e ranking",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Total recebido",
+    "definicao_formula": "Soma de quantidade_recebida no periodo.",
+    "fonte": "recebimentos_taloes",
+    "nivel": "1",
+    "uso": "Confirmacao logistica",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Quantidade pendente",
+    "definicao_formula": "Enviado - recebido, respeitando vinculo por id_envio.",
+    "fonte": "envios_taloes + recebimentos_taloes",
+    "nivel": "1",
+    "uso": "Acompanhamento de transito",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Taxa de recebimento",
+    "definicao_formula": "total_recebido / total_enviado * 100.",
+    "fonte": "envios + recebimentos",
+    "nivel": "1",
+    "uso": "Eficiencia logistica",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Tempo de recebimento",
+    "definicao_formula": "data_recebimento - data_envio.",
+    "fonte": "envios + recebimentos",
+    "nivel": "1",
+    "uso": "SLA e comparacao",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Taxa de manutencao",
+    "definicao_formula": "quantidade de manutencoes / quantidade de envios.",
+    "fonte": "manutencoes + envios",
+    "nivel": "1",
+    "uso": "Qualidade operacional",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Taxa de divergencia",
+    "definicao_formula": "Envios com quantidade corrigida / total de envios.",
+    "fonte": "manutencoes_taloes",
+    "nivel": "1",
+    "uso": "Qualidade e auditoria",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Lojas sem estoque cadastrado",
+    "definicao_formula": "Lojas sem registro em estoque_lojas.",
+    "fonte": "lojas + estoque_lojas",
+    "nivel": "1",
+    "uso": "Qualidade de dados",
+    "status_inicial": "Disponivel"
+  },
+  {
+    "indicador": "Ranking logistico",
+    "definicao_formula": "Pontuacao composta por recebimento, prazo e divergencia.",
+    "fonte": "Semantic Layer",
+    "nivel": "1",
+    "uso": "Gestao e comparacao",
+    "status_inicial": "Definir pesos"
+  },
+  {
+    "indicador": "Consumo real",
+    "definicao_formula": "Taloes efetivamente utilizados pela loja.",
+    "fonte": "Evento CONSUMO/UTILIZACAO",
+    "nivel": "1",
+    "uso": "Base de demanda",
+    "status_inicial": "Nao disponivel"
+  },
+  {
+    "indicador": "Consumo medio diario",
+    "definicao_formula": "Consumo total / dias com cobertura valida.",
+    "fonte": "historico de consumo",
+    "nivel": "1",
+    "uso": "Planejamento",
+    "status_inicial": "Depende de consumo"
+  },
+  {
+    "indicador": "Consumo medio mensal",
+    "definicao_formula": "Media de consumo por mes e loja.",
+    "fonte": "historico de consumo",
+    "nivel": "1",
+    "uso": "Planejamento",
+    "status_inicial": "Depende de consumo"
+  },
+  {
+    "indicador": "Cobertura de estoque",
+    "definicao_formula": "estoque_atual / consumo_medio do periodo.",
+    "fonte": "estoque + consumo",
+    "nivel": "1",
+    "uso": "Risco e reposicao",
+    "status_inicial": "Depende de consumo"
+  },
+  {
+    "indicador": "Tendencia de consumo",
+    "definicao_formula": "Variacao do consumo entre periodos.",
+    "fonte": "historico de consumo",
+    "nivel": "1/3",
+    "uso": "Dashboard e predicao",
+    "status_inicial": "Depende de consumo"
+  },
+  {
+    "indicador": "Sazonalidade",
+    "definicao_formula": "Padroes recorrentes por mes, semana ou evento.",
+    "fonte": "historico de consumo",
+    "nivel": "3",
+    "uso": "Predicao",
+    "status_inicial": "Historico insuficiente"
+  },
+  {
+    "indicador": "Previsao de demanda",
+    "definicao_formula": "Quantidade esperada para horizonte definido.",
+    "fonte": "modelo de serie temporal",
+    "nivel": "3",
+    "uso": "Planejamento",
+    "status_inicial": "Fase futura"
+  },
+  {
+    "indicador": "Risco de falta",
+    "definicao_formula": "Probabilidade de ruptura no horizonte.",
+    "fonte": "previsao + estoque + lead time",
+    "nivel": "3",
+    "uso": "Alerta preditivo",
+    "status_inicial": "Fase futura"
+  },
+  {
+    "indicador": "Risco de excesso",
+    "definicao_formula": "Probabilidade de estoque acima da demanda esperada.",
+    "fonte": "previsao + estoque",
+    "nivel": "3",
+    "uso": "Otimizacao",
+    "status_inicial": "Fase futura"
+  },
+  {
+    "indicador": "Recomendacao de reposicao",
+    "definicao_formula": "Demanda prevista + estoque de seguranca - estoque atual.",
+    "fonte": "modelo + regras",
+    "nivel": "3",
+    "uso": "Apoio a decisao",
+    "status_inicial": "Fase futura"
+  },
+  {
+    "indicador": "Anomalia operacional",
+    "definicao_formula": "Movimento fora do padrao esperado.",
+    "fonte": "historico e ML",
+    "nivel": "3",
+    "uso": "Auditoria",
+    "status_inicial": "Fase futura"
+  },
+  {
+    "indicador": "Insight executivo",
+    "definicao_formula": "Explicacao textual dos indicadores calculados.",
+    "fonte": "JSON da Semantic Layer + LLM",
+    "nivel": "2",
+    "uso": "Gestores",
+    "status_inicial": "Fase 2"
+  },
+  {
+    "indicador": "Pergunta em linguagem natural",
+    "definicao_formula": "Resposta com base em indicadores aprovados.",
+    "fonte": "Semantic Layer + LLM",
+    "nivel": "2/5",
+    "uso": "Assistente",
+    "status_inicial": "Fase 2/5"
+  }
+]
+
