@@ -40,7 +40,7 @@ Ou direto pelo backend:
 
 ```powershell
 cd "C:\Users\kaua\Downloads\be-a-ba\backend-node"
-npm start
+npm start ou nmp run dev
 ```
 
 Depois acesse:

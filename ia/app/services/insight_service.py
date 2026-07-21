@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from app.analytics.fingerprints import calculation_hash
 from app.core.config import get_settings
-from app.llm.openrouter_client import OpenRouterClient
+from app.llm.openrouter_client import LlmResult
 from app.llm.prompts import build_insight_prompt
 from app.repositories.insight_repository import InsightRepository
 from app.repositories.semantic_repository import SemanticLayerRepository
 from app.schemas.insights import CalculoNodeRequest, InsightGerado, InsightResponse, UsoTokens
+
+
+class LlmInsightClient(Protocol):
+    def gerar_insight(self, prompt: str) -> tuple[InsightGerado, LlmResult]:
+        ...
 
 
 class InsightService:
@@ -17,7 +22,7 @@ class InsightService:
         *,
         insight_repository: InsightRepository,
         semantic_repository: SemanticLayerRepository,
-        llm_client: OpenRouterClient,
+        llm_client: LlmInsightClient,
     ) -> None:
         self.insight_repository = insight_repository
         self.semantic_repository = semantic_repository
@@ -82,4 +87,3 @@ def _response_from_stored(stored: dict[str, Any], *, cache_hit: bool) -> Insight
         usage=UsoTokens.model_validate(stored.get("usage") or {}),
         criado_em=stored.get("criado_em"),
     )
-

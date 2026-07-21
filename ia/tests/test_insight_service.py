@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from app.llm.openrouter_client import LlmResult
@@ -42,8 +43,8 @@ def test_insight_service_reuses_cached_analysis() -> None:
     )
     request = CalculoNodeRequest(
         indicador="Gap para minimo",
-        periodo_inicio="2026-07-01",
-        periodo_fim="2026-07-19",
+        periodo_inicio=date(2026, 7, 1),
+        periodo_fim=date(2026, 7, 19),
         calculos={"loja_id": 1, "quantidade_atual": 10, "quantidade_minima": 20, "gap": -10},
     )
 
@@ -54,4 +55,3 @@ def test_insight_service_reuses_cached_analysis() -> None:
     assert second.cache_hit is True
     assert first.calculo_hash == second.calculo_hash
     assert llm.calls == 1
-
