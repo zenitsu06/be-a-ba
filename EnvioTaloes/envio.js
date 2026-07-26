@@ -430,8 +430,8 @@ function normalizarTextoPrioridade(valor) {
 }
 
 function formatarMensagemResumoIA() {
-    if (resumoIA?.mensagem) return resumoIA.mensagem;
-    const criticas = analisesIA.filter(item => normalizarPrioridadeTexto(item.prioridade, item.classe_css) === 'Crítico');
+    const criticasBase = obterLojasCriticasParaSugestao();
+    const criticas = criticasBase.slice(0, 8);
     const data = new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -439,12 +439,50 @@ function formatarMensagemResumoIA() {
         hour: '2-digit',
         minute: '2-digit'
     }).format(new Date());
-    const prioridadeMaxima = criticas.map(item => `${item.nome_loja} (${item.uf})`).join(', ') || '-';
+
+    if (!criticasBase.length) {
+        return [
+            `Análise concluída em ${data}`,
+            'Nenhuma loja em estado crítico no momento.',
+            'Não há reposição urgente recomendada pela IA.'
+        ].join('\n');
+    }
+
+    const prioridadeMaxima = criticas.map(item => `${item.nome_loja} (${item.uf || '-'})`).join(', ');
+    const ocultas = criticasBase.length > criticas.length
+        ? `\n+ ${criticasBase.length - criticas.length} loja(s) crítica(s) fora da prévia.`
+        : '';
+
     return [
         `Análise concluída em ${data}`,
-        `Quantidade de lojas em estado crítico: ${criticas.length}`,
-        `Prioridade máxima: ${prioridadeMaxima}`
+        `Quantidade de lojas em estado crítico: ${criticasBase.length}`,
+        `Reposição urgente: ${prioridadeMaxima}${ocultas}`
     ].join('\n');
+}
+
+function obterLojasCriticasParaSugestao() {
+    return lojas
+        .map(loja => {
+            const analise = buscarAnaliseIA(loja.codigo_loja);
+            const atual = Number(loja.quantidade_atual ?? loja['Quantidade atual'] ?? analise.estoque_atual ?? 0);
+            const estado = calcularPrioridadePorEstoque({ ...loja, quantidade_atual: atual }).prioridade
+                || normalizarPrioridadeTexto(analise.prioridade, analise.classe_css);
+
+            return {
+                codigo_loja: loja.codigo_loja,
+                nome_loja: loja.nome_da_loja || analise.nome_loja,
+                uf: loja.uf || analise.uf,
+                estoque_atual: atual,
+                prioridade: estado,
+                score_prioridade: analise.score_prioridade || 0
+            };
+        })
+        .filter(item => item.prioridade === 'Crítico')
+        .sort((a, b) =>
+            Number(a.estoque_atual || 0) - Number(b.estoque_atual || 0)
+            || Number(b.score_prioridade || 0) - Number(a.score_prioridade || 0)
+            || String(a.codigo_loja || '').localeCompare(String(b.codigo_loja || ''), 'pt-BR', { numeric: true })
+        );
 }
 
 function exportarRelatorioEnvios() {

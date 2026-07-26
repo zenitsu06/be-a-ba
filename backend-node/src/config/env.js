@@ -39,5 +39,7 @@ module.exports = {
     outputPath: path.join(projectRoot, 'dados', 'ia_envio_taloes.json'),
     openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
     openRouterModel: process.env.OPENROUTER_MODEL || '',
+    serviceUrl: process.env.IA_SERVICE_URL || process.env.OFERTE_IA_SERVICE_URL || 'http://127.0.0.1:8001',
+    serviceTimeoutMs: toInt(process.env.IA_SERVICE_TIMEOUT_MS || process.env.OFERTE_IA_SERVICE_TIMEOUT_MS, 12000),
   },
 };

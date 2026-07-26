@@ -789,6 +789,50 @@ function rowDate(row) {
 }
 
 async function answerChatbot(question) {
+  const pergunta = String(question || '').trim();
+  if (!pergunta) return { resposta: 'Digite uma pergunta para consultar os indicadores.' };
+
+  const iaResponse = await askIaChat(pergunta);
+  if (iaResponse) return iaResponse;
+
+  return answerLocalChatbot(pergunta);
+}
+
+async function askIaChat(pergunta) {
+  const baseUrl = String(env.ai.serviceUrl || '').replace(/\/+$/, '');
+  if (!baseUrl || typeof fetch !== 'function') return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.ai.serviceTimeoutMs);
+
+  try {
+    const response = await fetch(`${baseUrl}/chat/perguntar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pergunta }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data?.resposta) return null;
+
+    return {
+      resposta: data.resposta,
+      fonte: data.fonte || 'camada_ia',
+      intencao: data.intencao || null,
+      periodo_inicio: data.periodo_inicio || null,
+      periodo_fim: data.periodo_fim || null,
+      kpis_considerados: data.kpis_considerados || [],
+    };
+  } catch (_error) {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function answerLocalChatbot(question) {
   const text = removeAccents(String(question || '').trim().toLowerCase());
   if (text.includes('abaixo do estoque') || text.includes('estoque minimo')) {
     const ai = await readAiAnalysis();

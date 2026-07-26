@@ -1,4 +1,4 @@
-﻿# Camada de IA - be-a-ba
+# Camada de IA - be-a-ba
 
 Camada Python separada para receber calculos ja feitos pelo Node.js/Analytics, gerar insights com LLM quando necessario e reutilizar respostas armazenadas para reduzir consumo de tokens.
 
@@ -80,6 +80,9 @@ Endpoints iniciais:
 - `GET /semantic-layer/indicadores`
 - `POST /llm/teste`
 - `POST /insights/analisar-calculos`
+- `GET /analytics/resumo`
+- `GET /analytics/estoque-lojas`
+- `POST /analytics/insight-executivo`
 
 Exemplo do endpoint de insights:
 
@@ -102,6 +105,27 @@ Exemplo do endpoint de insights:
 
 Na primeira chamada, a LLM gera e armazena o insight. Em chamadas futuras com os mesmos calculos, a resposta volta com `cache_hit: true`.
 
+## Analytics funcional
+
+A camada agora consegue ler o banco operacional em modo analitico por `POSTGRES_READONLY_DSN` e calcular KPIs oficiais sem usar LLM.
+
+Exemplos:
+
+```bash
+curl "http://127.0.0.1:8001/analytics/resumo"
+curl "http://127.0.0.1:8001/analytics/estoque-lojas"
+```
+
+O endpoint `POST /analytics/insight-executivo` calcula os KPIs, monta um payload agregado e usa a LLM apenas para gerar a explicacao executiva. Como ele envia dados agregados para a OpenRouter, use conscientemente:
+
+```json
+{
+  "periodo_inicio": "2026-07-01",
+  "periodo_fim": "2026-07-24",
+  "forcar_nova_analise": false
+}
+```
+
 ## Banco de Dados
 
 O schema `ia` guarda o historico inteligente. Se `IA_DATABASE_DSN` estiver configurado, a camada usa PostgreSQL. Sem essa variavel, ela usa armazenamento em memoria para desenvolvimento local.
@@ -122,4 +146,3 @@ A chamada HTTP usa o endpoint de chat completions da OpenRouter:
 
 - https://openrouter.ai/docs/quickstart
 - https://openrouter.ai/docs/api/reference/overview
-

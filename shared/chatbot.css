@@ -90,29 +90,48 @@
     color: #ffffff;
 }
 
-.chatbot-suggestions {
-    padding: 0 16px 16px;
-    display: flex;
-    flex-direction: column;
+.chatbot-message.loading {
+    color: #60736e;
+    font-style: italic;
+}
+
+.chatbot-form {
+    padding: 0 16px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
 }
 
-.chatbot-question {
-    width: 100%;
+.chatbot-input {
+    min-width: 0;
     border: 1px solid #cfe3de;
     border-radius: 8px;
-    background-color: #ffffff;
-    color: #22443c;
     padding: 10px 12px;
-    text-align: left;
-    cursor: pointer;
+    color: #10231f;
     font-size: 0.88rem;
-    line-height: 1.35;
+    outline: none;
 }
 
-.chatbot-question:hover {
-    background-color: #f0fcf9;
+.chatbot-input:focus {
     border-color: #00b087;
+    box-shadow: 0 0 0 3px rgba(0, 176, 135, 0.12);
+}
+
+.chatbot-send {
+    border: none;
+    border-radius: 8px;
+    background-color: #00b087;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 700;
+    padding: 0 12px;
+}
+
+.chatbot-input:disabled,
+.chatbot-send:disabled {
+    cursor: wait;
+    opacity: 0.72;
 }
 
 @media (max-width: 600px) {

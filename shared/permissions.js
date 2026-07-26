@@ -28,9 +28,11 @@
         if (!usuario) return [];
 
         const cargo = normalizarCargo(usuario.cargo);
+        const atribuicoesSalvas = usuario.atribacoes || usuario.atribuicoes || [];
         const permissoes = new Set([
             'dashboard',
-            ...((usuario.atribacoes || usuario.atribuicoes || DEFAULT_PERMISSIONS[cargo] || []) || [])
+            ...(DEFAULT_PERMISSIONS[cargo] || []),
+            ...(Array.isArray(atribuicoesSalvas) ? atribuicoesSalvas : [])
         ]);
 
         if (cargo === 'administrador') permissoes.add('recebimentos');

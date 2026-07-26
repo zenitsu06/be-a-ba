@@ -161,19 +161,41 @@ body {
 .ai-card {
     padding: 22px 26px;
     min-height: 130px;
+    max-height: 260px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow-y: auto;
+    scrollbar-color: #9fcfc0 #eef5f2;
+    scrollbar-width: thin;
 }
 
 .ai-card strong {
     color: #111;
+    flex: 0 0 auto;
 }
 
 .ai-card p {
     font-size: 0.92rem;
     line-height: 1.45;
     color: #555;
+    margin: 0;
+    padding-right: 8px;
+    white-space: pre-line;
+}
+
+.ai-card::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ai-card::-webkit-scrollbar-track {
+    background-color: #eef5f2;
+    border-radius: 999px;
+}
+
+.ai-card::-webkit-scrollbar-thumb {
+    background-color: #9fcfc0;
+    border-radius: 999px;
 }
 
 .table-section {
