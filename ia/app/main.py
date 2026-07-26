@@ -1,3 +1,6 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.analytics import router as analytics_router
@@ -12,6 +15,15 @@ from app.core.database import close_pools
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
+    try:
+        yield
+    finally:
+        close_pools()
+
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -19,6 +31,7 @@ app = FastAPI(
         "Camada analitica separada para Semantic Layer, cache de insights, "
         "LLM e predicoes futuras."
     ),
+    lifespan=lifespan,
 )
 
 app.include_router(health_router)
@@ -27,8 +40,3 @@ app.include_router(llm_router)
 app.include_router(insights_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
-
-
-@app.on_event("shutdown")
-def shutdown() -> None:
-    close_pools()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Generator
 
 from psycopg_pool import ConnectionPool
 
@@ -35,7 +35,7 @@ def get_analytics_pool() -> ConnectionPool | None:
 
 
 @contextmanager
-def ia_connection() -> Iterator[object]:
+def ia_connection() -> Generator[object, None, None]:
     pool = get_ia_pool()
     if pool is None:
         raise RuntimeError("IA_DATABASE_DSN nao foi configurado.")
@@ -44,7 +44,7 @@ def ia_connection() -> Iterator[object]:
 
 
 @contextmanager
-def analytics_connection() -> Iterator[object]:
+def analytics_connection() -> Generator[object, None, None]:
     pool = get_analytics_pool()
     if pool is None:
         raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")

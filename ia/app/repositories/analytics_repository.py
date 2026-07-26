@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Any, Mapping, Sequence, cast
 
 from psycopg.rows import dict_row
@@ -204,27 +205,50 @@ def _scalar_int(cur: Any, sql: str, params: Sequence[object] | None = None) -> i
 def _scalar_float(cur: Any, sql: str, params: Sequence[object] | None = None) -> float | None:
     cur.execute(sql, list(params or []))
     value = _first_value(cur.fetchone())
-    if value is None:
-        return None
-    return round(float(value), 2)
+    converted = _to_float(value)
+    return round(converted, 2) if converted is not None else None
 
 
-def _first_value(row: object) -> object:
+def _first_value(row: object) -> object | None:
     if isinstance(row, Mapping):
-        return next(iter(row.values()), None)
+        typed_row = cast(Mapping[str, object], row)
+        return next(iter(typed_row.values()), None)
     if isinstance(row, Sequence) and not isinstance(row, str):
-        return row[0] if row else None
+        typed_row = cast(Sequence[object], row)
+        return typed_row[0] if typed_row else None
     return None
 
 
 def _rows(rows: object) -> list[Mapping[str, Any]]:
     if not isinstance(rows, Sequence):
         return []
-    return [cast(Mapping[str, Any], row) for row in rows if isinstance(row, Mapping)]
+    typed_rows = cast(Sequence[object], rows)
+    return [cast(Mapping[str, Any], row) for row in typed_rows if isinstance(row, Mapping)]
 
 
 def _to_int(value: object) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, (float, Decimal)):
+        return int(value)
     try:
-        return int(value or 0)
+        return int(str(value).strip() or "0")
     except (TypeError, ValueError):
         return 0
+
+
+def _to_float(value: object) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return float(value)
+    if isinstance(value, (int, float, Decimal)):
+        return float(value)
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError):
+        return None

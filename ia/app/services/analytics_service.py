@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import date, timedelta
-from typing import Any, Mapping, Protocol
+from decimal import Decimal
+from typing import Any, Mapping, Protocol, cast
 
 from app.schemas.analytics import (
     AnalyticsResumo,
@@ -64,13 +65,16 @@ class AnalyticsService:
     def insight_executivo(self, request: PeriodoAnaliseRequest) -> InsightResponse:
         periodo_inicio, periodo_fim = _resolve_period(request)
         resumo = self.resumo_operacional(periodo_inicio=periodo_inicio, periodo_fim=periodo_fim)
-        top_alertas = [
+        top_alertas: list[dict[str, Any]] = [
             item.model_dump(mode="json")
             for item in resumo.estoque_lojas
             if item.status_estoque in {"CRITICO", "ALERTA", "BAIXO"}
         ][:10]
-        calculos = {
-            "kpis": [item.model_dump(mode="json") for item in resumo.kpis],
+        kpis_payload: list[dict[str, Any]] = [
+            item.model_dump(mode="json") for item in resumo.kpis
+        ]
+        calculos: dict[str, Any] = {
+            "kpis": kpis_payload,
             "top_alertas_estoque": top_alertas,
             "total_lojas_analisadas": len(resumo.estoque_lojas),
         }
@@ -94,6 +98,14 @@ class AnalyticsService:
         resumo = self.resumo_operacional(periodo_inicio=periodo_inicio, periodo_fim=periodo_fim)
         kpis = {_normalize(item.indicador): item for item in resumo.kpis}
         intencao = _detect_intent(pergunta)
+
+        if intencao == "insight_analitico":
+            return self._responder_insight_analitico(
+                pergunta=pergunta,
+                periodo_inicio=periodo_inicio,
+                periodo_fim=periodo_fim,
+                resumo=resumo,
+            )
 
         if intencao == "total_lojas":
             total = _kpi_value(kpis, "total de lojas")
@@ -230,6 +242,88 @@ class AnalyticsService:
             ],
         )
 
+    def _responder_insight_analitico(
+        self,
+        *,
+        pergunta: str,
+        periodo_inicio: date,
+        periodo_fim: date,
+        resumo: AnalyticsResumo,
+    ) -> ChatPerguntaResponse:
+        top_alertas: list[dict[str, Any]] = [
+            _stock_alert_payload(item)
+            for item in resumo.estoque_lojas
+            if item.status_estoque in {"CRITICO", "ALERTA", "BAIXO"} or item.estoque_atual < item.estoque_minimo
+        ][:5]
+        kpis_relevantes: list[dict[str, Any]] = [
+            item.model_dump(mode="json")
+            for item in resumo.kpis
+            if item.indicador
+            in {
+                "Total de lojas",
+                "Lojas criticas",
+                "Lojas em alerta",
+                "Total enviado",
+                "Total recebido",
+                "Quantidade pendente",
+                "Taxa de recebimento",
+                "Taxa de divergencia",
+                "Anomalias abertas",
+            }
+        ]
+        calculos: dict[str, Any] = {
+            "pergunta_usuario": pergunta,
+            "kpis": kpis_relevantes,
+            "top_alertas_estoque": top_alertas,
+            "total_lojas_analisadas": len(resumo.estoque_lojas),
+        }
+        payload = CalculoNodeRequest(
+            indicador="Chat analitico",
+            periodo_inicio=periodo_inicio,
+            periodo_fim=periodo_fim,
+            origem="analytics",
+            filtros={"pergunta_normalizada": _normalize(pergunta)},
+            calculos=calculos,
+            observacoes=(
+                "Responder em linguagem natural, de forma objetiva, usando somente estes KPIs ja calculados. "
+                "Nao inventar dados, nao recalcular formulas e nao citar que recebeu JSON."
+            ),
+        )
+
+        try:
+            insight = self.insight_service.analisar_calculos(payload)
+        except RuntimeError:
+            kpis = {_normalize(item.indicador): item for item in resumo.kpis}
+            return _chat_response(
+                pergunta="resumo",
+                periodo_inicio=periodo_inicio,
+                periodo_fim=periodo_fim,
+                resposta=_answer_general_summary(resumo, kpis),
+                kpis=[item.indicador for item in resumo.kpis],
+            )
+
+        return _chat_response(
+            pergunta="insight_analitico",
+            periodo_inicio=periodo_inicio,
+            periodo_fim=periodo_fim,
+            resposta=_format_insight_for_chat(insight),
+            kpis=[str(item.get("indicador") or "") for item in kpis_relevantes],
+        )
+
+
+def _stock_alert_payload(item: EstoqueLojaIndicador) -> dict[str, Any]:
+    return {
+        "codigo_loja": item.codigo_loja,
+        "nome_loja": item.nome_loja,
+        "uf": item.uf,
+        "estoque_atual": item.estoque_atual,
+        "estoque_minimo": item.estoque_minimo,
+        "estoque_recomendado": item.estoque_recomendado,
+        "gap_para_minimo": item.gap_para_minimo,
+        "gap_para_recomendado": item.gap_para_recomendado,
+        "status_estoque": item.status_estoque,
+    }
+
 
 def _stock_from_row(row: Mapping[str, Any]) -> EstoqueLojaIndicador:
     atual = _to_int(row.get("quantidade_atual"))
@@ -257,7 +351,9 @@ def _kpis_from_summary(summary: Mapping[str, Any]) -> list[KpiValue]:
     total_manutencoes = _to_int(summary.get("total_manutencoes"))
     recebimentos_divergentes = _to_int(summary.get("recebimentos_divergentes"))
     estoque_status = summary.get("estoque_status")
-    status_counts = estoque_status if isinstance(estoque_status, Mapping) else {}
+    status_counts: Mapping[str, object] = (
+        cast(Mapping[str, object], estoque_status) if isinstance(estoque_status, Mapping) else {}
+    )
 
     taxa_recebimento = round((total_recebido / total_enviado) * 100, 2) if total_enviado else 0
     taxa_manutencao = round((total_manutencoes / total_envios) * 100, 2) if total_envios else 0
@@ -308,6 +404,8 @@ def _resolve_chat_period(request: ChatPerguntaRequest) -> tuple[date, date]:
 
 def _detect_intent(pergunta: str) -> str:
     text = _normalize(pergunta)
+    if _asks_analytical_insight(text):
+        return "insight_analitico"
     if _asks_total_stores(text):
         return "total_lojas"
     if "funcionario" in text or "funcionarios" in text or "colaborador" in text or "colaboradores" in text:
@@ -327,6 +425,24 @@ def _detect_intent(pergunta: str) -> str:
     if "recebido" in text or "recebimento" in text or "pendente" in text:
         return "recebimentos"
     return "resumo"
+
+
+def _asks_analytical_insight(text: str) -> bool:
+    analytical_terms = [
+        "analise",
+        "analisar",
+        "explique",
+        "explica",
+        "insight",
+        "priorizar",
+        "prioridade",
+        "recomenda",
+        "recomendacao",
+        "decisao",
+        "situacao geral",
+        "resumo executivo",
+    ]
+    return any(term in text for term in analytical_terms)
 
 
 def _asks_total_stores(text: str) -> bool:
@@ -437,6 +553,17 @@ def _answer_general_summary(resumo: AnalyticsResumo, kpis: Mapping[str, KpiValue
     )
 
 
+def _format_insight_for_chat(response: InsightResponse) -> str:
+    partes = [
+        response.insight.resumo.strip(),
+        response.insight.recomendacao.strip(),
+    ]
+    pontos = [item.strip() for item in response.insight.pontos_atencao[:2] if item.strip()]
+    if pontos:
+        partes.append("Pontos de atencao: " + "; ".join(pontos) + ".")
+    return " ".join(parte for parte in partes if parte)
+
+
 def _chat_response(
     *,
     pergunta: str,
@@ -481,8 +608,16 @@ def _normalize(value: str) -> str:
 
 
 def _to_int(value: object) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, (float, Decimal)):
+        return int(value)
     try:
-        return int(value or 0)
+        return int(str(value).strip() or "0")
     except (TypeError, ValueError):
         return 0
 

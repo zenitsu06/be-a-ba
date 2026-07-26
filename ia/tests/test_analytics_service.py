@@ -54,7 +54,13 @@ class FakeAnalyticsRepository:
 
 
 class FakeInsightService:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.last_request: Any = None
+
     def analisar_calculos(self, request: Any) -> InsightResponse:
+        self.calls += 1
+        self.last_request = request
         return InsightResponse(
             cache_hit=False,
             calculo_hash="abc",
@@ -122,9 +128,10 @@ def test_analytics_service_answers_chat_stock_question() -> None:
 
 
 def test_analytics_service_answers_total_stores_question() -> None:
+    insight_service = FakeInsightService()
     service = AnalyticsService(
         analytics_repository=FakeAnalyticsRepository(),
-        insight_service=FakeInsightService(),
+        insight_service=insight_service,
     )
 
     response = service.responder_chat(
@@ -137,6 +144,7 @@ def test_analytics_service_answers_total_stores_question() -> None:
 
     assert response.intencao == "total_lojas"
     assert "1 loja" in response.resposta
+    assert insight_service.calls == 0
 
 
 def test_analytics_service_answers_store_current_stock_question() -> None:
@@ -191,3 +199,26 @@ def test_analytics_service_answers_store_replenishment_question() -> None:
 
     assert response.intencao == "reposicao_loja"
     assert "50 taloes" in response.resposta
+
+
+def test_analytics_service_uses_llm_only_for_analytical_chat() -> None:
+    insight_service = FakeInsightService()
+    service = AnalyticsService(
+        analytics_repository=FakeAnalyticsRepository(),
+        insight_service=insight_service,
+    )
+
+    response = service.responder_chat(
+        ChatPerguntaRequest(
+            pergunta="Me explique a situacao geral e o que devo priorizar",
+            periodo_inicio=date(2026, 7, 1),
+            periodo_fim=date(2026, 7, 24),
+        )
+    )
+
+    assert response.intencao == "insight_analitico"
+    assert "Priorizar reposicao" in response.resposta
+    assert insight_service.calls == 1
+    assert insight_service.last_request.indicador == "Chat analitico"
+    assert "kpis" in insight_service.last_request.calculos
+    assert len(insight_service.last_request.calculos["top_alertas_estoque"]) == 1
