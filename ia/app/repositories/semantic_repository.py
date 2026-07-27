@@ -8,9 +8,15 @@ from typing import Any
 class SemanticLayerRepository:
     def __init__(self, indicadores_path: Path) -> None:
         self.indicadores_path = indicadores_path
+        self._cache_mtime: float | None = None
+        self._cache: list[dict[str, Any]] | None = None
 
     def list_indicadores(self) -> list[dict[str, Any]]:
-        return json.loads(self.indicadores_path.read_text(encoding="utf-8"))
+        mtime = self.indicadores_path.stat().st_mtime
+        if self._cache is None or self._cache_mtime != mtime:
+            self._cache = json.loads(self.indicadores_path.read_text(encoding="utf-8"))
+            self._cache_mtime = mtime
+        return self._cache.copy()
 
     def find_by_name(self, nome: str) -> dict[str, Any] | None:
         normalized = nome.strip().lower()
@@ -18,4 +24,3 @@ class SemanticLayerRepository:
             if str(indicador["indicador"]).strip().lower() == normalized:
                 return indicador
         return None
-

@@ -322,23 +322,15 @@ async function getShipment(idEnvio) {
 async function generateShipmentCode() {
   const year = new Date().getFullYear();
   const prefix = `ENV-${year}-`;
-  const codes = await repository.listShipmentCodes(prefix);
-  const maxSeq = codes.reduce((max, code) => {
-    const seq = Number.parseInt(String(code || '').replace(prefix, ''), 10);
-    return Number.isFinite(seq) ? Math.max(max, seq) : max;
-  }, 0);
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
+  const nextSeq = await repository.nextShipmentSequence(prefix);
+  return `${prefix}${String(nextSeq).padStart(3, '0')}`;
 }
 
 async function generateReceiptCode() {
   const year = new Date().getFullYear();
   const prefix = `REC-${year}-`;
-  const codes = await repository.listReceiptCodes(prefix);
-  const maxSeq = codes.reduce((max, code) => {
-    const seq = Number.parseInt(String(code || '').replace(prefix, ''), 10);
-    return Number.isFinite(seq) ? Math.max(max, seq) : max;
-  }, 0);
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
+  const nextSeq = await repository.nextReceiptSequence(prefix);
+  return `${prefix}${String(nextSeq).padStart(3, '0')}`;
 }
 
 async function createShipment(payload) {

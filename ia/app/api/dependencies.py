@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 from app.llm.openrouter_client import OpenRouterClient
@@ -12,20 +13,27 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 INDICADORES_PATH = BASE_DIR / "semantic_layer" / "indicadores.json"
 
 
+@lru_cache
 def get_semantic_repository() -> SemanticLayerRepository:
     return SemanticLayerRepository(INDICADORES_PATH)
+
+
+@lru_cache
+def get_analytics_repository() -> AnalyticsRepository:
+    return AnalyticsRepository()
+
+
+@lru_cache
+def get_openrouter_client() -> OpenRouterClient:
+    return OpenRouterClient.from_settings()
 
 
 def get_insight_service() -> InsightService:
     return InsightService(
         insight_repository=get_insight_repository(),
         semantic_repository=get_semantic_repository(),
-        llm_client=OpenRouterClient.from_settings(),
+        llm_client=get_openrouter_client(),
     )
-
-
-def get_analytics_repository() -> AnalyticsRepository:
-    return AnalyticsRepository()
 
 
 def get_analytics_service() -> AnalyticsService:

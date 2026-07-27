@@ -457,12 +457,17 @@ async function listShipments() {
   return rows;
 }
 
-async function listShipmentCodes(prefix) {
+async function nextShipmentSequence(prefix) {
   const { rows } = await query(
-    'SELECT codigo_envio FROM public.envios_taloes WHERE codigo_envio LIKE $1',
-    [`${prefix}%`],
+    `
+    SELECT COALESCE(MAX(NULLIF(SUBSTRING(codigo_envio FROM LENGTH($1) + 1), '')::INT), 0) + 1 AS next_seq
+    FROM public.envios_taloes
+    WHERE codigo_envio LIKE $2
+      AND SUBSTRING(codigo_envio FROM LENGTH($1) + 1) ~ '^[0-9]+$'
+    `,
+    [prefix, `${prefix}%`],
   );
-  return rows.map((row) => row.codigo_envio);
+  return rows[0]?.next_seq || 1;
 }
 
 async function createShipment(payload) {
@@ -578,12 +583,17 @@ async function listReceipts() {
   return rows;
 }
 
-async function listReceiptCodes(prefix) {
+async function nextReceiptSequence(prefix) {
   const { rows } = await query(
-    'SELECT codigo_recebimento FROM public.recebimentos_taloes WHERE codigo_recebimento LIKE $1',
-    [`${prefix}%`],
+    `
+    SELECT COALESCE(MAX(NULLIF(SUBSTRING(codigo_recebimento FROM LENGTH($1) + 1), '')::INT), 0) + 1 AS next_seq
+    FROM public.recebimentos_taloes
+    WHERE codigo_recebimento LIKE $2
+      AND SUBSTRING(codigo_recebimento FROM LENGTH($1) + 1) ~ '^[0-9]+$'
+    `,
+    [prefix, `${prefix}%`],
   );
-  return rows.map((row) => row.codigo_recebimento);
+  return rows[0]?.next_seq || 1;
 }
 
 async function findReceiptByShipmentId(client, idEnvio) {
@@ -877,7 +887,7 @@ module.exports = {
   ensureInventoryRow,
   applyInventoryDelta,
   listShipments,
-  listShipmentCodes,
+  nextShipmentSequence,
   createShipment,
   updateShipment,
   findShipmentViewByCode,
@@ -885,7 +895,7 @@ module.exports = {
   findShipmentInternalByCode,
   markShipmentAsReceived,
   listReceipts,
-  listReceiptCodes,
+  nextReceiptSequence,
   findReceiptByShipmentId,
   insertReceipt,
   updateReceipt,
