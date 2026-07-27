@@ -78,8 +78,14 @@ function renderizarTelaRecebimento() {
 }
 
 function inicializarEventosRecebimento() {
-    document.getElementById('busca-recebimento')?.addEventListener('input', renderizarTabelaRecebimento);
-    document.getElementById('filtro-status')?.addEventListener('change', renderizarTabelaRecebimento);
+    document.getElementById('busca-recebimento')?.addEventListener('input', () => {
+        window.OfertePagination?.resetar('recebimento');
+        renderizarTabelaRecebimento();
+    });
+    document.getElementById('filtro-status')?.addEventListener('change', () => {
+        window.OfertePagination?.resetar('recebimento');
+        renderizarTabelaRecebimento();
+    });
     document.getElementById('btn-exportar-recebimentos')?.addEventListener('click', exportarRelatorioRecebimentos);
 
     window.addEventListener('storage', (evento) => {
@@ -205,9 +211,16 @@ function renderizarCardIA() {
 function renderizarTabelaRecebimento() {
     const corpo = document.getElementById('tabela-recebimento-corpo');
     const linhas = obterLinhasFiltradas();
+    const pagina = window.OfertePagination?.pagina('recebimento', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
     corpo.innerHTML = '';
 
-    linhas.forEach(item => {
+    pagina.itens.forEach(item => {
         const tr = document.createElement('tr');
         const statusClasse = item.status === 'recebido' ? 'recebido' : 'pendente';
 
@@ -228,6 +241,8 @@ function renderizarTabelaRecebimento() {
     if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="9">Nenhuma remessa encontrada.</td></tr>';
     }
+
+    window.OfertePagination?.renderizar('paginacao-recebimento', 'recebimento', pagina, renderizarTabelaRecebimento);
 }
 
 function montarCelulaRecebimento(item) {

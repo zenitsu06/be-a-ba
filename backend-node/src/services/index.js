@@ -107,6 +107,31 @@ async function setUserStatus(matricula, status) {
   return normalizeUser(user);
 }
 
+async function redefineUserPassword(matricula, novaSenha) {
+  const userCode = String(matricula || '').trim().toUpperCase();
+  const password = String(novaSenha || '').trim();
+  if (!userCode || !password) throw new AppError('Matricula e nova senha sao obrigatorias.');
+  if (password.length < 4) throw new AppError('A nova senha deve ter pelo menos 4 caracteres.');
+
+  const updated = await repository.updateUserPassword(userCode, password);
+  if (!updated) throw new AppError('Usuario nao encontrado.', 404);
+  return { matricula: updated.matricula, senha_redefinida: true };
+}
+
+async function requestPasswordRecovery(email, matricula) {
+  const identifier = String(matricula || '').trim().toUpperCase();
+  if (identifier) {
+    await getUserByMatricula(identifier);
+  }
+  return {
+    enviado: true,
+    email: email || null,
+    matricula: identifier || null,
+    codigo_teste: '123456',
+    observacao: 'Fluxo local de demonstracao. Use o codigo 123456 para redefinir a senha.',
+  };
+}
+
 async function deleteUser(matricula) {
   const deleted = await repository.deleteUserByMatricula(String(matricula || '').trim().toUpperCase());
   if (!deleted) throw new AppError('Usuario nao encontrado.', 404);
@@ -901,6 +926,8 @@ module.exports = {
   listWorkplaceNotifications,
   linkUserProfile,
   readAiAnalysis,
+  redefineUserPassword,
+  requestPasswordRecovery,
   runAiAnalysis,
   reportRows,
   saveProfile,

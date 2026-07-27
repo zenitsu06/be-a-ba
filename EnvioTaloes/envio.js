@@ -139,8 +139,14 @@ function inicializarEventos() {
         await confirmarEnvio();
     });
 
-    document.getElementById('busca-envio').addEventListener('input', renderizarTabela);
-    document.getElementById('filtro-status').addEventListener('change', renderizarTabela);
+    document.getElementById('busca-envio').addEventListener('input', () => {
+        window.OfertePagination?.resetar('envios');
+        renderizarTabela();
+    });
+    document.getElementById('filtro-status').addEventListener('change', () => {
+        window.OfertePagination?.resetar('envios');
+        renderizarTabela();
+    });
     document.getElementById('btn-exportar-envios')?.addEventListener('click', exportarRelatorioEnvios);
 }
 
@@ -255,9 +261,17 @@ async function confirmarEnvio() {
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-envios-corpo');
+    const linhas = obterEnviosVisiveis();
+    const pagina = window.OfertePagination?.pagina('envios', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
     corpo.innerHTML = "";
 
-    obterEnviosVisiveis()
+    pagina.itens
         .forEach(envio => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -275,9 +289,11 @@ function renderizarTabela() {
             corpo.appendChild(tr);
         });
 
-    if (!corpo.children.length) {
+    if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="8">Nenhum envio encontrado.</td></tr>';
     }
+
+    window.OfertePagination?.renderizar('paginacao-envios', 'envios', pagina, renderizarTabela);
 }
 
 function obterEnviosVisiveis() {

@@ -10,7 +10,7 @@ from app.llm.openrouter_client import OpenRouterClient, OpenRouterError
 
 
 def main() -> None:
-    load_dotenv(Path(__file__).with_name(".env"))
+    load_dotenv(Path(__file__).with_name(".env"), encoding="utf-8-sig")
 
     client = OpenRouterClient(
         api_key=os.getenv("OPENROUTER_API_KEY", ""),

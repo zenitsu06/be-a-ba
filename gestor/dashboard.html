@@ -6,6 +6,7 @@
     <title>Gestor de Estoque - Verdecard</title>
     <link rel="stylesheet" href="./gestor.css">
     <link rel="stylesheet" href="../shared/chatbot.css">
+    <link rel="stylesheet" href="../shared/table-pagination.css">
     <link rel="stylesheet" href="../shared/ui-refresh.css">
 </head>
 <body>
@@ -99,12 +100,14 @@
                     <tbody id="tabela-gestor-corpo"></tbody>
                 </table>
             </div>
+            <nav id="paginacao-gestor" class="table-pagination" aria-label="Paginação da tabela do gestor"></nav>
         </section>
     </main>
 
     <script src="../shared/app-config.js"></script>
     <script src="../shared/permissions.js"></script>
     <script src="../shared/report-utils.js"></script>
+    <script src="../shared/table-pagination.js"></script>
     <script src="./gestor.js"></script>
     <script src="../shared/chatbot.js"></script>
 </body>

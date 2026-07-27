@@ -165,9 +165,16 @@ function renderizarGraficoPizza() {
 function renderizarTabelaEstoqueBaixo() {
     const corpo = document.getElementById('tabela-estoque-baixo');
     const linhas = obterLojasEstoqueBaixo();
+    const pagina = window.OfertePagination?.pagina('estoque-baixo', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
     corpo.innerHTML = '';
 
-    linhas.forEach(loja => {
+    pagina.itens.forEach(loja => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${loja.codigo_loja}</strong></td>
@@ -183,6 +190,8 @@ function renderizarTabelaEstoqueBaixo() {
     if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="6">Nenhuma loja em estado crítico ou alerta.</td></tr>';
     }
+
+    window.OfertePagination?.renderizar('paginacao-estoque-baixo', 'estoque-baixo', pagina, renderizarTabelaEstoqueBaixo);
 }
 
 function renderizarSugestaoIA() {

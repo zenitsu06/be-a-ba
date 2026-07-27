@@ -205,10 +205,17 @@ function atualizarCardsMetricas() {
 
 function renderizarTabelaUsuarios(usuariosFiltrados = listaUsuarios) {
     const corpo = document.getElementById('tabela-usuarios-corpo');
+    const pagina = window.OfertePagination?.pagina('usuarios', usuariosFiltrados) || {
+        itens: usuariosFiltrados,
+        totalItens: usuariosFiltrados.length,
+        itensPorPagina: usuariosFiltrados.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
     corpo.innerHTML = "";
     usuariosVisiveis = usuariosFiltrados;
 
-    usuariosFiltrados.forEach(user => {
+    pagina.itens.forEach(user => {
         const tr = document.createElement('tr');
         const badgeClass = user.status === "Ativo" ? "ativo" : "inativo";
         const btnClass = user.status === "Ativo" ? "to-inativar" : "to-ativar";
@@ -233,6 +240,12 @@ function renderizarTabelaUsuarios(usuariosFiltrados = listaUsuarios) {
         `;
         corpo.appendChild(tr);
     });
+
+    if (!usuariosFiltrados.length) {
+        corpo.innerHTML = '<tr><td colspan="6">Nenhum usuário encontrado.</td></tr>';
+    }
+
+    window.OfertePagination?.renderizar('paginacao-usuarios', 'usuarios', pagina, () => renderizarTabelaUsuarios(usuariosFiltrados));
 }
 
 function popularSelectLojas() {
@@ -421,6 +434,7 @@ function inicializarEventosModal() {
     });
 
     document.getElementById('busca-usuario').addEventListener('input', (e) => {
+        window.OfertePagination?.resetar('usuarios');
         const termo = e.target.value.toLowerCase().trim();
         const resultado = listaUsuarios.filter(u =>
             u.nome.toLowerCase().includes(termo) ||

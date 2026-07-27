@@ -340,15 +340,21 @@ function listarHistoricoRelatoriosLocal() {
 }
 
 function inicializarEventosRelatorios() {
-    document.getElementById('busca-relatorio').addEventListener('input', renderizarRelatorios);
-    document.getElementById('data-inicial').addEventListener('change', renderizarRelatorios);
-    document.getElementById('data-final').addEventListener('change', renderizarRelatorios);
+    document.getElementById('busca-relatorio').addEventListener('input', resetarERenderizarRelatorios);
+    document.getElementById('data-inicial').addEventListener('change', resetarERenderizarRelatorios);
+    document.getElementById('data-final').addEventListener('change', resetarERenderizarRelatorios);
     document.getElementById('tipo-relatorio').addEventListener('change', async (event) => {
         await carregarRelatorioSelecionado(event.target.value);
+        window.OfertePagination?.resetar('relatorios');
         renderizarRelatorios();
     });
     document.getElementById('btn-exportar-csv').addEventListener('click', exportarCsvPython);
     document.getElementById('btn-enviar-admin').addEventListener('click', enviarRelatorioParaAdmin);
+}
+
+function resetarERenderizarRelatorios() {
+    window.OfertePagination?.resetar('relatorios');
+    renderizarRelatorios();
 }
 
 function renderizarRelatorios() {
@@ -356,11 +362,18 @@ function renderizarRelatorios() {
     const tipo = obterTipoRelatorioAtual();
     const colunas = COLUNAS_RELATORIOS[tipo] || COLUNAS_RELATORIOS.gestor;
     const linhas = filtrarLinhas(relatorioSelecionadoLinhas);
+    const pagina = window.OfertePagination?.pagina('relatorios', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
 
     renderizarCabecalhoRelatorio(colunas);
     corpo.innerHTML = '';
 
-    linhas.forEach(linha => {
+    pagina.itens.forEach(linha => {
         const tr = document.createElement('tr');
         tr.innerHTML = colunas
             .map(([campo]) => `<td>${formatarValorRelatorio(linha[campo], campo)}</td>`)
@@ -371,6 +384,8 @@ function renderizarRelatorios() {
     if (!linhas.length) {
         corpo.innerHTML = `<tr><td colspan="${colunas.length}">Nenhum registro encontrado.</td></tr>`;
     }
+
+    window.OfertePagination?.renderizar('paginacao-relatorios', 'relatorios', pagina, renderizarRelatorios);
 }
 
 function renderizarCabecalhoRelatorio(colunas) {

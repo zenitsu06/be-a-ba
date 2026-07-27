@@ -178,11 +178,16 @@ function inicializarEventos() {
         await confirmarRecebimento();
     });
 
-    document.getElementById('input-busca').addEventListener('input', renderizarTabela);
-    document.getElementById('filtro-status').addEventListener('change', renderizarTabela);
+    document.getElementById('input-busca').addEventListener('input', resetarERenderizarTabelaUsuario);
+    document.getElementById('filtro-status').addEventListener('change', resetarERenderizarTabelaUsuario);
     document.getElementById('btn-editar-estoque').addEventListener('click', editarEstoqueAtual);
     document.getElementById('btn-exportar')?.addEventListener('click', exportarCsvPython);
     document.getElementById('btn-sair').addEventListener('click', encerrarSessaoSeguranca);
+}
+
+function resetarERenderizarTabelaUsuario() {
+    window.OfertePagination?.resetar('usuario');
+    renderizarTabela();
 }
 
 function preencherModalComEnvio(envio, atualizarCodigo = true) {
@@ -302,10 +307,17 @@ async function editarEstoqueAtual() {
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-corpo');
     const linhas = obterLinhasVisiveisUsuario();
+    const pagina = window.OfertePagination?.pagina('usuario', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
 
     corpo.innerHTML = '';
 
-    linhas.forEach((item, index) => {
+    pagina.itens.forEach((item, index) => {
         const trPrincipal = document.createElement('tr');
         const badgeClass = item.status === 'recebido' ? 'badge-green' : 'badge-yellow';
 
@@ -339,6 +351,8 @@ function renderizarTabela() {
     if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="8">Nenhuma remessa encontrada para esta loja.</td></tr>';
     }
+
+    window.OfertePagination?.renderizar('paginacao-usuario', 'usuario', pagina, renderizarTabela);
 }
 
 function obterLinhasVisiveisUsuario() {

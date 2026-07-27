@@ -32,6 +32,19 @@ async function findUserPasswordHash(matricula) {
   return rows[0]?.senha_hash || null;
 }
 
+async function updateUserPassword(matricula, senha) {
+  const { rows, rowCount } = await query(
+    `
+    UPDATE public.usuarios
+    SET senha_hash = crypt($2, gen_salt('bf'))
+    WHERE matricula = $1
+    RETURNING matricula
+    `,
+    [matricula, senha],
+  );
+  return rowCount ? rows[0] : null;
+}
+
 async function upsertUser(payload) {
   const { rows } = await query(
     `
@@ -831,6 +844,7 @@ module.exports = {
   listUsers,
   findUserForAuth,
   findUserPasswordHash,
+  updateUserPassword,
   upsertUser,
   findUserViewByMatricula,
   deleteUserByMatricula,

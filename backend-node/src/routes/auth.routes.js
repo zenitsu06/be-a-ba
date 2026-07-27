@@ -1,6 +1,11 @@
 const { Router } = require('express');
 const asyncRoute = require('../middlewares/async-route');
-const { authenticate, currentAuthUser } = require('../services');
+const {
+  authenticate,
+  currentAuthUser,
+  redefineUserPassword,
+  requestPasswordRecovery,
+} = require('../services');
 
 const router = Router();
 
@@ -22,18 +27,11 @@ router.get('/auth/me', asyncRoute(async (_req, res) => {
 }));
 
 router.post('/auth/recuperar-senha', asyncRoute(async (req, res) => {
-  res.json({
-    enviado: true,
-    email: req.body.email || null,
-    observacao: 'Fluxo simulado para demonstracao no Insomnia. Envio real por e-mail pode ser integrado depois.',
-  });
+  res.json(await requestPasswordRecovery(req.body.email, req.body.matricula));
 }));
 
-router.post('/auth/redefinir-senha', asyncRoute(async (_req, res) => {
-  res.json({
-    redefinida: true,
-    observacao: 'Fluxo simulado para demonstracao no Insomnia. Validacao de token pode ser integrada depois.',
-  });
+router.post('/auth/redefinir-senha', asyncRoute(async (req, res) => {
+  res.json(await redefineUserPassword(req.body.matricula, req.body.nova_senha || req.body.senha));
 }));
 
 module.exports = router;

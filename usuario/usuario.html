@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Lojista - Recebimento de Talões</title>
     <link rel="stylesheet" href="./usuario.css">
+    <link rel="stylesheet" href="../shared/table-pagination.css">
     <link rel="stylesheet" href="../shared/ui-refresh.css">
 </head>
 <body>
@@ -87,13 +88,7 @@
                 </table>
             </div>
 
-            <div class="pagination-container">
-                <button class="page-arrow">&lt;</button>
-                <div class="page-numbers" id="paginacao-numeros">
-                    <span class="page-num active">1</span>
-                </div>
-                <button class="page-arrow">&gt;</button>
-            </div>
+            <nav id="paginacao-usuario" class="table-pagination" aria-label="Paginação da tabela de remessas"></nav>
         </section>
     </main>
 
@@ -157,6 +152,7 @@
 
     <script src="../shared/app-config.js"></script>
     <script src="../shared/report-utils.js"></script>
+    <script src="../shared/table-pagination.js"></script>
     <script src="./usuario.js"></script>
 </body>
 </html>

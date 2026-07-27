@@ -1,6 +1,7 @@
 const API_BASE = window.OFERTE_CONFIG?.API_BASE || 'http://localhost:8000';
 const CHAVE_LOJAS_LOCAL = 'lojasJsonAtualizado';
 const TEMPO_INATIVIDADE_MS = 10 * 60 * 1000;
+const ITENS_POR_PAGINA_LOJAS = 10;
 const tokenSessaoLojas = Math.random().toString(36).substring(2);
 
 let timeoutInatividade;
@@ -9,6 +10,7 @@ let lojas = [];
 let estoqueLojas = [];
 let usuarios = [];
 let funcionarios = [];
+let paginaAtualLojas = 1;
 
 document.addEventListener('DOMContentLoaded', async () => {
     iniciarSeguranca();
@@ -244,7 +246,10 @@ function inicializarEventos() {
         await cadastrarLoja();
     });
 
-    document.getElementById('busca-loja').addEventListener('input', renderizarTabela);
+    document.getElementById('busca-loja').addEventListener('input', () => {
+        paginaAtualLojas = 1;
+        renderizarTabela();
+    });
     document.getElementById('btn-exportar-lojas')?.addEventListener('click', exportarRelatorioLojas);
 }
 
@@ -307,11 +312,15 @@ async function cadastrarLoja() {
 function renderizarTabela() {
     const corpo = document.getElementById('tabela-lojas-corpo');
     const lojasFiltradas = obterLojasVisiveis();
+    const totalPaginas = Math.max(Math.ceil(lojasFiltradas.length / ITENS_POR_PAGINA_LOJAS), 1);
+    paginaAtualLojas = Math.min(Math.max(paginaAtualLojas, 1), totalPaginas);
+    const inicio = (paginaAtualLojas - 1) * ITENS_POR_PAGINA_LOJAS;
+    const lojasPagina = lojasFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA_LOJAS);
 
     corpo.innerHTML = "";
     document.getElementById('total-lojas').innerText = lojas.length;
 
-    lojasFiltradas.forEach(loja => {
+    lojasPagina.forEach(loja => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${loja.codigo_loja}</strong></td>
@@ -329,6 +338,68 @@ function renderizarTabela() {
     if (!corpo.children.length) {
         corpo.innerHTML = '<tr><td colspan="8">Nenhuma loja encontrada.</td></tr>';
     }
+
+    renderizarPaginacaoLojas(lojasFiltradas.length, totalPaginas);
+}
+
+function renderizarPaginacaoLojas(totalItens, totalPaginas) {
+    const paginacao = document.getElementById('paginacao-lojas');
+    if (!paginacao) return;
+
+    paginacao.innerHTML = '';
+    if (totalItens <= ITENS_POR_PAGINA_LOJAS) {
+        paginacao.hidden = true;
+        return;
+    }
+
+    paginacao.hidden = false;
+    paginacao.appendChild(criarBotaoPaginacao('‹', paginaAtualLojas - 1, paginaAtualLojas === 1, 'Página anterior'));
+
+    paginasVisiveis(totalPaginas).forEach(item => {
+        if (item === '...') {
+            const span = document.createElement('span');
+            span.className = 'pagination-ellipsis';
+            span.textContent = '...';
+            paginacao.appendChild(span);
+            return;
+        }
+
+        const botao = criarBotaoPaginacao(String(item), item, false, `Página ${item}`);
+        if (item === paginaAtualLojas) botao.classList.add('active');
+        paginacao.appendChild(botao);
+    });
+
+    paginacao.appendChild(criarBotaoPaginacao('›', paginaAtualLojas + 1, paginaAtualLojas === totalPaginas, 'Próxima página'));
+}
+
+function criarBotaoPaginacao(texto, pagina, desabilitado, rotulo) {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'pagination-btn';
+    botao.textContent = texto;
+    botao.disabled = desabilitado;
+    botao.setAttribute('aria-label', rotulo);
+    botao.addEventListener('click', () => {
+        paginaAtualLojas = pagina;
+        renderizarTabela();
+    });
+    return botao;
+}
+
+function paginasVisiveis(totalPaginas) {
+    if (totalPaginas <= 6) {
+        return Array.from({ length: totalPaginas }, (_item, index) => index + 1);
+    }
+
+    if (paginaAtualLojas <= 4) {
+        return [1, 2, 3, 4, '...', totalPaginas];
+    }
+
+    if (paginaAtualLojas >= totalPaginas - 3) {
+        return [1, '...', totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas];
+    }
+
+    return [1, '...', paginaAtualLojas - 1, paginaAtualLojas, paginaAtualLojas + 1, '...', totalPaginas];
 }
 
 function obterLojasVisiveis() {

@@ -1,42 +1,10 @@
-# Camada de IA - be-a-ba
+# ininciando os servidores
+cd "C:\Users\kaua\Downloads\be-a-ba\backend-node" npm run dev
+cd "C:\Users\kaua\Downloads\be-a-ba\ia" uvicorn app.main:app --reload
 
-Camada Python separada para receber calculos ja feitos pelo Node.js/Analytics, gerar insights com LLM quando necessario e reutilizar respostas armazenadas para reduzir consumo de tokens.
-
-## Escopo
-
-- A IA nao realiza CRUD nem altera dados operacionais no schema `oferteganhe`.
-- A conexao operacional com PostgreSQL deve usar usuario somente leitura.
-- Indicadores criticos ficam em Node.js, SQL ou Python analytics.
-- A LLM explica resultados e recomenda a partir de calculos oficiais, sem inventar calculos.
-- Toda recomendacao deve informar origem, periodo analisado e nivel de confianca.
-- Dados pessoais devem ser anonimizados ou agregados antes de inferencia externa.
-- Insights ja gerados devem ser retornados do historico/cache sempre que o mesmo calculo for solicitado.
-
-## Estrutura
-
-```text
-ia/
-  app/
-    api/
-    core/
-    repositories/
-    services/
-    analytics/
-    schemas/
-    llm/
-    utils/
-  semantic_layer/
-    indicadores.json
-  sql/
-    001_schema_ia.sql
-  scripts/
-  tests/
-  .env.example
-  .gitignore
-  README.md
-  requirements.txt
-  teste_llm.py
-```
+# testes da chave api do OpenRouter
+cd "C:\Users\kaua\Downloads\be-a-ba\ia" após isso verificar se o arquivo está dentro da pasta "ia" colocando: dir -Force (Esse comando é opcional, é apenas verificar o arquivo na pasta)
+Get-Content .env depois python teste_llm.py
 
 ## Arquitetura
 

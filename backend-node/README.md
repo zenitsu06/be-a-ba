@@ -1,7 +1,4 @@
-# Backend Node.js - Oferte e Ganhe
 
-Backend oficial do projeto em Express/Node.js, mantendo as rotas `/api/...` usadas pelo frontend.
-Python permanece apenas em `../python/ia_envio_taloes.py` para executar a IA.
 
 ## Arquitetura em camadas
 

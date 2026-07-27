@@ -1,12 +1,13 @@
+const CODIGO_VERIFICACAO_FIXO = '123456';
+const API_BASE = window.OFERTE_CONFIG?.API_BASE || 'http://localhost:8000';
+const REQUEST_TIMEOUT_MS = window.OFERTE_CONFIG?.REQUEST_TIMEOUT_MS || 3500;
+const CHAVE_USUARIOS_LOCAL = 'usuariosJsonAtualizado';
 
-const CODIGO_VERIFICACAO_FIXO = "123456";
-
-let matriculaEmRecuperacao = "";
+let matriculaEmRecuperacao = '';
 const modalOverlay = document.getElementById('modal-reset');
 const passo1 = document.getElementById('passo-1');
 const passo2 = document.getElementById('passo-2');
 const passo3 = document.getElementById('passo-3');
-const CHAVE_USUARIOS_LOCAL = 'usuariosJsonAtualizado';
 
 async function carregarDadosLogin() {
     const dadosLocais = JSON.parse(localStorage.getItem(CHAVE_USUARIOS_LOCAL));
@@ -25,8 +26,70 @@ async function carregarDadosLogin() {
     };
 }
 
-async function carregarUsuarios() {
-    return (await carregarDadosLogin()).usuarios;
+async function apiRequest(route, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(`${API_BASE}${route}`, {
+            ...options,
+            signal: controller.signal,
+            headers: {
+                ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                ...(options.headers || {})
+            }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.erro || data.message || 'Erro na API.');
+        }
+        return data;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function autenticarNoBackend(matricula, senha) {
+    const data = await apiRequest('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ matricula, senha })
+    });
+    return data.usuario;
+}
+
+function registrarUsuarioLogado(usuario, perfis = []) {
+    if ((usuario.status || 'Ativo') === 'Inativo') {
+        alert('Usuario inativo. Acesso bloqueado.');
+        return;
+    }
+
+    const atribacoes = obterAtribuicoesUsuario(usuario, perfis);
+
+    localStorage.setItem('usuarioLogado', JSON.stringify({
+        nome: usuario.nome,
+        matricula: usuario.matricula,
+        cargo: usuario.cargo,
+        email: usuario.email,
+        loja: usuario.loja,
+        lojaNome: usuario.lojaNome,
+        lojaUf: usuario.lojaUf,
+        status: usuario.status,
+        atribacoes
+    }));
+
+    switch (usuario.cargo) {
+        case 'administrador':
+            window.location.href = '../administrador/dashboard.html';
+            break;
+        case 'gestor':
+            window.location.href = '../gestor/dashboard.html';
+            break;
+        case 'lojista':
+            window.location.href = '../usuario/usuario.html';
+            break;
+        default:
+            window.location.href = destinoInicialPorAtribuicoes(atribacoes);
+    }
 }
 
 document.getElementById('form-login').addEventListener('submit', async function(e) {
@@ -36,85 +99,51 @@ document.getElementById('form-login').addEventListener('submit', async function(
     const senhaInserida = document.getElementById('login-senha').value;
 
     try {
-        const dadosLogin = await carregarDadosLogin();
-        const listaUsuarios = dadosLogin.usuarios;
-        
-        // Verifica se há alguma senha modificada localmente no LocalStorage
-        const senhaAlteradaLocalmente = localStorage.getItem(`novaSenha_${matriculaInserida}`);
+        const usuarioApi = await autenticarNoBackend(matriculaInserida, senhaInserida);
+        registrarUsuarioLogado(usuarioApi, []);
+        return;
+    } catch (erroApi) {
+        console.warn('Login via API falhou, tentando fallback local:', erroApi);
+    }
 
-        const usuarioValidado = listaUsuarios.find(u => {
-            const senhaCorreta = senhaAlteradaLocalmente ? senhaAlteradaLocalmente : u.senha;
-            // Garante a verificação ignorando maiúsculas/minúsculas (Ex: qq1001 funciona como QQ1001)
-            return u.matricula.trim().toUpperCase() === matriculaInserida.toUpperCase() && senhaInserida === senhaCorreta;
+    try {
+        const dadosLogin = await carregarDadosLogin();
+        const usuarioValidado = dadosLogin.usuarios.find(usuario => {
+            return usuario.matricula.trim().toUpperCase() === matriculaInserida.toUpperCase()
+                && senhaInserida === usuario.senha;
         });
 
-        if (usuarioValidado) {
-            if (usuarioValidado.status === "Inativo") {
-                alert('Usuário inativo. Acesso bloqueado.');
-                return;
-            }
-
-            const atribacoes = obterAtribuicoesUsuario(usuarioValidado, dadosLogin.perfis);
-
-            localStorage.setItem('usuarioLogado', JSON.stringify({
-                nome: usuarioValidado.nome,
-                matricula: usuarioValidado.matricula,
-                cargo: usuarioValidado.cargo,
-                email: usuarioValidado.email,
-                loja: usuarioValidado.loja,
-                lojaNome: usuarioValidado.lojaNome,
-                lojaUf: usuarioValidado.lojaUf,
-                status: usuarioValidado.status,
-                atribacoes
-            }));
-
-            // Redirecionamento baseado nos cargos do seu JSON
-            switch (usuarioValidado.cargo) {
-                case 'administrador':
-                    window.location.href = '../administrador/dashboard.html';
-                    break;
-                case 'gestor':
-                    window.location.href = '../gestor/dashboard.html';
-                    break;
-                case 'lojista':
-                    window.location.href = '../usuario/usuario.html';
-                    break;
-                default:
-                    window.location.href = destinoInicialPorAtribuicoes(atribacoes);
-            }
-        } else {
-            alert('Matrícula ou senha incorretas.');
+        if (!usuarioValidado) {
+            alert('Matricula ou senha incorretas.');
+            return;
         }
 
-    } catch (erro) {
-        console.error('Erro ao carregar dados:', erro);
-        alert('Erro ao conectar. Verifique se o Live Server está ativo.');
+        registrarUsuarioLogado(usuarioValidado, dadosLogin.perfis);
+    } catch (erroLocal) {
+        console.error('Erro ao carregar dados:', erroLocal);
+        alert(`Nao foi possivel autenticar. Verifique se o backend esta rodando em ${API_BASE}.`);
     }
 });
 
-// --- LÓGICA DE NAVEGAÇÃO DOS POP-UPS ---
-
-// Abrir o primeiro Pop-up ao clicar em Resetar
 document.getElementById('btn-resetar').addEventListener('click', () => {
     modalOverlay.style.display = 'flex';
     mudarParaPasso(passo1);
 });
 
-// Fechar os modais ao clicar no 'X' ou fora do card
 document.querySelectorAll('.modal-close').forEach(botao => {
     botao.addEventListener('click', fecharModais);
 });
+
 modalOverlay.addEventListener('click', (e) => {
-    if(e.target === modalOverlay) fecharModais();
+    if (e.target === modalOverlay) fecharModais();
 });
 
 function fecharModais() {
     modalOverlay.style.display = 'none';
-    // Limpa os inputs ao fechar
-    document.getElementById('reset-matricula').value = "";
-    document.getElementById('reset-codigo').value = "";
-    document.getElementById('reset-nova-senha').value = "";
-    document.getElementById('reset-confirmar-senha').value = "";
+    document.getElementById('reset-matricula').value = '';
+    document.getElementById('reset-codigo').value = '';
+    document.getElementById('reset-nova-senha').value = '';
+    document.getElementById('reset-confirmar-senha').value = '';
 }
 
 function mudarParaPasso(passoAtivo) {
@@ -123,68 +152,72 @@ function mudarParaPasso(passoAtivo) {
     passo3.classList.remove('active');
     passoAtivo.classList.add('active');
 }
-// 1º PASSO: Valida a Matrícula contra o JSON
+
 document.getElementById('btn-passo1').addEventListener('click', async () => {
     const matriculaInput = document.getElementById('reset-matricula').value.trim();
-    if(!matriculaInput) {
-        alert("Por favor, preencha o campo de matrícula.");
+    if (!matriculaInput) {
+        alert('Por favor, preencha o campo de matricula.');
         return;
     }
 
     try {
-        const listaUsuarios = await carregarUsuarios();
-        
-        // Log auxiliar para debugar no F12 do navegador
-        console.log("Matrícula digitada:", matriculaInput);
-        console.log("Lista carregada:", listaUsuarios);
+        const data = await apiRequest(`/api/usuarios/${encodeURIComponent(matriculaInput)}`);
+        const usuario = data.usuario;
+        matriculaEmRecuperacao = matriculaInput.toUpperCase();
 
-        const usuario = listaUsuarios.find(u => u.matricula.trim().toUpperCase() === matriculaInput.toUpperCase());
+        await apiRequest('/api/auth/recuperar-senha', {
+            method: 'POST',
+            body: JSON.stringify({ matricula: matriculaEmRecuperacao, email: usuario.email })
+        });
 
-        if(usuario) {
-            matriculaEmRecuperacao = matriculaInput;
-            // Atualiza dinamicamente o texto com o e-mail do JSON
-            document.getElementById('lbl-email-destino').innerText = `Código enviado para o seguinte email, ${usuario.email}`;
-            mudarParaPasso(passo2);
-        } else {
-            alert("Matrícula não localizada no sistema. Certifique-se de digitar exatamente como no cadastro (Ex: QQ1001).");
-        }
+        document.getElementById('lbl-email-destino').innerText = `Codigo enviado para o seguinte email, ${usuario.email}`;
+        mudarParaPasso(passo2);
     } catch (erro) {
-        console.error("Erro ao validar matrícula:", erro);
-        alert("Não foi possível carregar os dados. Certifique-se de que está abrindo o projeto através do 'Live Server'.");
+        console.error('Erro ao validar matricula:', erro);
+        alert('Nao foi possivel localizar a matricula. Verifique se o backend esta ativo.');
     }
 });
 
-// 2º PASSO: Valida se o código confere com a variável mockada fixada
 document.getElementById('btn-passo2').addEventListener('click', () => {
     const codigoInput = document.getElementById('reset-codigo').value.trim();
 
-    if(codigoInput === CODIGO_VERIFICACAO_FIXO) {
+    if (codigoInput === CODIGO_VERIFICACAO_FIXO) {
         mudarParaPasso(passo3);
     } else {
-        alert("Código de verificação incorreto! Utilize o código padrão do protótipo: 1234");
+        alert('Codigo de verificacao incorreto. Use o codigo padrao do prototipo: 123456');
     }
 });
 
-// 3º PASSO: Salva a nova senha mockada vinculada à matrícula
-document.getElementById('btn-passo3').addEventListener('click', () => {
+document.getElementById('btn-passo3').addEventListener('click', async () => {
     const novaSenha = document.getElementById('reset-nova-senha').value;
     const confirmarSenha = document.getElementById('reset-confirmar-senha').value;
 
-    if(!novaSenha || !confirmarSenha) {
-        alert("Preencha ambos os campos de senha.");
+    if (!novaSenha || !confirmarSenha) {
+        alert('Preencha ambos os campos de senha.');
         return;
     }
 
-    if(novaSenha !== confirmarSenha) {
-        alert("As senhas não conferem. Tente novamente.");
+    if (novaSenha !== confirmarSenha) {
+        alert('As senhas nao conferem. Tente novamente.');
         return;
     }
 
-    // "Salva" de forma mockada no LocalStorage simulando o update do JSON
-    localStorage.setItem(`novaSenha_${matriculaEmRecuperacao}`, novaSenha);
-    
-    alert("Senha alterada com sucesso! Você já pode realizar o login.");
-    fecharModais();
+    try {
+        await apiRequest('/api/auth/redefinir-senha', {
+            method: 'POST',
+            body: JSON.stringify({
+                matricula: matriculaEmRecuperacao,
+                nova_senha: novaSenha
+            })
+        });
+
+        localStorage.removeItem(`novaSenha_${matriculaEmRecuperacao}`);
+        alert('Senha alterada com sucesso! Voce ja pode realizar o login.');
+        fecharModais();
+    } catch (erro) {
+        console.error('Erro ao redefinir senha:', erro);
+        alert('Nao foi possivel alterar a senha no banco. Verifique se o backend esta rodando.');
+    }
 });
 
 function normalizarPerfis(perfis) {

@@ -143,9 +143,16 @@ function calcularLojasBaixas() {
 function renderizarTabelaGestor() {
     const corpo = document.getElementById('tabela-gestor-corpo');
     const linhas = obterLinhasVisiveisGestor();
+    const pagina = window.OfertePagination?.pagina('gestor', linhas) || {
+        itens: linhas,
+        totalItens: linhas.length,
+        itensPorPagina: linhas.length || 1,
+        totalPaginas: 1,
+        paginaAtual: 1
+    };
 
     corpo.innerHTML = '';
-    linhas.forEach(linha => {
+    pagina.itens.forEach(linha => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><button class="row-expand-btn">⌄</button></td>
@@ -164,6 +171,8 @@ function renderizarTabelaGestor() {
     if (!linhas.length) {
         corpo.innerHTML = '<tr><td colspan="9">Nenhum recebimento encontrado.</td></tr>';
     }
+
+    window.OfertePagination?.renderizar('paginacao-gestor', 'gestor', pagina, renderizarTabelaGestor);
 }
 
 function obterLinhasVisiveisGestor() {
@@ -211,12 +220,17 @@ function montarLinhasGestor() {
 }
 
 function inicializarEventosGestor() {
-    document.getElementById('busca-gestor').addEventListener('input', renderizarTabelaGestor);
-    document.getElementById('filtro-status-gestor').addEventListener('change', renderizarTabelaGestor);
-    document.getElementById('data-inicial-gestor').addEventListener('change', renderizarTabelaGestor);
-    document.getElementById('data-final-gestor').addEventListener('change', renderizarTabelaGestor);
+    document.getElementById('busca-gestor').addEventListener('input', resetarERenderizarTabelaGestor);
+    document.getElementById('filtro-status-gestor').addEventListener('change', resetarERenderizarTabelaGestor);
+    document.getElementById('data-inicial-gestor').addEventListener('change', resetarERenderizarTabelaGestor);
+    document.getElementById('data-final-gestor').addEventListener('change', resetarERenderizarTabelaGestor);
     document.getElementById('btn-gerar-relatorio').addEventListener('click', gerarRelatorioGestor);
     document.getElementById('btn-exportar-gestor')?.addEventListener('click', exportarRelatorioGestor);
+}
+
+function resetarERenderizarTabelaGestor() {
+    window.OfertePagination?.resetar('gestor');
+    renderizarTabelaGestor();
 }
 
 function gerarRelatorioGestor() {
