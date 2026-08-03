@@ -634,9 +634,3 @@ Content-Type: application/json
 }
 ```
 
-## Resumo Para Apresentacao
-
-Uma forma simples de explicar o projeto:
-
-> O Oferte e Ganhe e um sistema de gestao de taloes. O frontend envia requisicoes para um backend Node.js. O backend aplica as regras de negocio e grava os dados no PostgreSQL. A camada de IA em Python roda separada e usa os dados ja calculados para gerar insights, evitando enviar dados brutos desnecessarios para a LLM. Assim, o banco continua sendo a fonte da verdade e a IA atua como apoio analitico.
-

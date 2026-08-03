@@ -14,9 +14,12 @@ class SemanticLayerRepository:
     def list_indicadores(self) -> list[dict[str, Any]]:
         mtime = self.indicadores_path.stat().st_mtime
         if self._cache is None or self._cache_mtime != mtime:
-            self._cache = json.loads(self.indicadores_path.read_text(encoding="utf-8"))
+            cache: list[dict[str, Any]] = json.loads(self.indicadores_path.read_text(encoding="utf-8"))
+            self._cache = cache
             self._cache_mtime = mtime
-        return self._cache.copy()
+        else:
+            cache = self._cache
+        return cache.copy()
 
     def find_by_name(self, nome: str) -> dict[str, Any] | None:
         normalized = nome.strip().lower()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Mapping, Sequence, cast
 
 import requests
@@ -74,13 +75,14 @@ class OpenRouterClient:
         result = self.chat(
             system_prompt=(
                 "Voce e a camada de IA do be-a-ba. Analise apenas calculos ja recebidos "
-                "do Node.js ou da camada analytics. Retorne JSON valido e conciso."
+                "do Node.js ou da camada analytics. Retorne somente JSON valido e conciso, "
+                "sem Markdown e sem bloco de codigo."
             ),
             user_prompt=prompt,
             max_tokens=settings.llm_max_tokens,
             temperature=settings.llm_temperature,
         )
-        return _parse_insight(result.content), result
+        return parse_insight(result.content), result
 
     def chat(
         self,
@@ -136,10 +138,9 @@ class OpenRouterClient:
         )
 
 
-def _parse_insight(content: str) -> InsightGerado:
-    try:
-        data = cast(dict[str, Any], json.loads(content))
-    except json.JSONDecodeError:
+def parse_insight(content: str) -> InsightGerado:
+    parsed = _load_json_mapping(content)
+    if parsed is None:
         data: dict[str, Any] = {
             "titulo": "Insight gerado",
             "resumo": content.strip(),
@@ -149,7 +150,70 @@ def _parse_insight(content: str) -> InsightGerado:
             "nivel_confianca": "medio",
             "pontos_atencao": ["A resposta da LLM nao retornou JSON valido."],
         }
+    else:
+        data = parsed
     return InsightGerado.model_validate(data)
+
+
+_parse_insight = parse_insight
+
+
+def _load_json_mapping(content: str) -> dict[str, Any] | None:
+    for candidate in _json_candidates(content):
+        try:
+            raw: object = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(raw, Mapping):
+            return dict(cast(Mapping[str, Any], raw))
+    return None
+
+
+def _json_candidates(content: str) -> list[str]:
+    text = content.strip()
+    candidates = [text]
+
+    for match in re.finditer(r"```(?:json)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL):
+        fenced = match.group(1).strip()
+        if fenced:
+            candidates.append(fenced)
+
+    extracted = _extract_first_json_object(text)
+    if extracted:
+        candidates.append(extracted)
+
+    return candidates
+
+
+def _extract_first_json_object(text: str) -> str | None:
+    start = text.find("{")
+    if start < 0:
+        return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+
+    return None
 
 
 def _extract_error_message(response: requests.Response) -> str:

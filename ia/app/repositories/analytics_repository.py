@@ -31,7 +31,7 @@ class AnalyticsRepository:
                 )
                 return _rows(cur.fetchall())
 
-    def fetch_store_detail(self, cod_loja: str) -> Mapping[str, Any] | None:
+    def fetch_store_detail(self, store_identifier: str) -> Mapping[str, Any] | None:
         pool = get_analytics_pool()
         if pool is None:
             raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
@@ -56,8 +56,193 @@ class AnalyticsRepository:
                         GROUP BY cod_loja
                     ) f ON f.cod_loja = l.codigo_loja
                     WHERE UPPER(l.codigo_loja) = UPPER(%s)
+                       OR LOWER(l.nome_da_loja) = LOWER(%s)
+                       OR LOWER(l.nome_da_loja) LIKE LOWER(%s)
+                    ORDER BY CASE
+                        WHEN UPPER(l.codigo_loja) = UPPER(%s) THEN 0
+                        WHEN LOWER(l.nome_da_loja) = LOWER(%s) THEN 1
+                        ELSE 2
+                    END,
+                    l.codigo_loja
+                    LIMIT 1
                     """,
-                    [cod_loja],
+                    [
+                        store_identifier,
+                        store_identifier,
+                        f"%{store_identifier}%",
+                        store_identifier,
+                        store_identifier,
+                    ],
+                )
+                row = cur.fetchone()
+                return cast(Mapping[str, Any], row) if isinstance(row, Mapping) else None
+
+    def fetch_store_counts_by_uf(self) -> dict[str, int]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT UPPER(COALESCE(uf, '')) AS uf, COUNT(*)::INT AS total
+                    FROM public.lojas
+                    GROUP BY UPPER(COALESCE(uf, ''))
+                    """
+                )
+                rows = _rows(cur.fetchall())
+                return {str(row.get("uf") or ""): _to_int(row.get("total")) for row in rows}
+
+    def fetch_user_role_counts(self, store_identifier: str | None = None) -> list[Mapping[str, Any]]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        sql = """
+            SELECT LOWER(COALESCE(u.cargo, 'sem_cargo')) AS cargo,
+                   COUNT(*)::INT AS total
+            FROM public.usuarios u
+            LEFT JOIN public.lojas l ON l.cod_loja = u.cod_loja
+            WHERE COALESCE(u.status, 'Ativo') <> 'Inativo'
+        """
+        params: list[object] = []
+        if store_identifier:
+            sql += """
+              AND (
+                  UPPER(u.cod_loja) = UPPER(%s)
+                  OR LOWER(l.nome_loja) = LOWER(%s)
+                  OR LOWER(l.nome_loja) LIKE LOWER(%s)
+              )
+            """
+            params.extend([store_identifier, store_identifier, f"%{store_identifier}%"])
+        sql += " GROUP BY LOWER(COALESCE(u.cargo, 'sem_cargo')) ORDER BY cargo"
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(sql, params)
+                return _rows(cur.fetchall())
+
+    def fetch_received_total_by_month(self, year: int, month: int) -> Mapping[str, Any]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(quantidade_recebida), 0)::INT AS total_taloes,
+                           COUNT(*)::INT AS total_recebimentos
+                    FROM public.recebimentos_taloes
+                    WHERE data_hora_recebimento >= make_date(%s, %s, 1)
+                      AND data_hora_recebimento < make_date(%s, %s, 1) + INTERVAL '1 month'
+                    """,
+                    [year, month, year, month],
+                )
+                row = cur.fetchone()
+                return cast(Mapping[str, Any], row) if isinstance(row, Mapping) else {}
+
+    def fetch_shipments_on_date(self, day: date) -> Mapping[str, Any]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT COUNT(*)::INT AS total_remessas,
+                           COALESCE(SUM(quantidade_enviada), 0)::INT AS total_taloes
+                    FROM public.envios_taloes
+                    WHERE data_hora_envio >= %s
+                      AND data_hora_envio < (%s::date + INTERVAL '1 day')
+                    """,
+                    [day, day],
+                )
+                row = cur.fetchone()
+                return cast(Mapping[str, Any], row) if isinstance(row, Mapping) else {}
+
+    def fetch_last_shipments_for_store(
+        self,
+        store_identifier: str,
+        limit: int = 7,
+    ) -> list[Mapping[str, Any]]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT e.codigo_envio,
+                           e.cod_loja,
+                           l.nome_loja,
+                           l.uf,
+                           e.data_hora_envio,
+                           e.quantidade_enviada,
+                           e.status
+                    FROM public.envios_taloes e
+                    JOIN public.lojas l ON l.cod_loja = e.cod_loja
+                    WHERE UPPER(e.cod_loja) = UPPER(%s)
+                       OR LOWER(l.nome_loja) = LOWER(%s)
+                       OR LOWER(l.nome_loja) LIKE LOWER(%s)
+                    ORDER BY e.data_hora_envio DESC, e.id_envio DESC
+                    LIMIT %s
+                    """,
+                    [store_identifier, store_identifier, f"%{store_identifier}%", limit],
+                )
+                return _rows(cur.fetchall())
+
+    def fetch_average_shipments_for_store(
+        self,
+        store_identifier: str,
+        periodo_inicio: date | None = None,
+        periodo_fim: date | None = None,
+    ) -> Mapping[str, Any] | None:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT l.cod_loja,
+                           l.nome_loja,
+                           l.uf,
+                           COALESCE(AVG(e.quantidade_enviada), 0)::NUMERIC(12, 2) AS media_taloes,
+                           COUNT(e.id_envio)::INT AS total_remessas,
+                           COALESCE(SUM(e.quantidade_enviada), 0)::INT AS total_taloes
+                    FROM public.lojas l
+                    LEFT JOIN public.envios_taloes e
+                      ON e.cod_loja = l.cod_loja
+                     AND (%s::date IS NULL OR e.data_hora_envio >= %s)
+                     AND (%s::date IS NULL OR e.data_hora_envio < (%s::date + INTERVAL '1 day'))
+                    WHERE UPPER(l.cod_loja) = UPPER(%s)
+                       OR LOWER(l.nome_loja) = LOWER(%s)
+                       OR LOWER(l.nome_loja) LIKE LOWER(%s)
+                    GROUP BY l.cod_loja, l.nome_loja, l.uf
+                    ORDER BY CASE
+                        WHEN UPPER(l.cod_loja) = UPPER(%s) THEN 0
+                        WHEN LOWER(l.nome_loja) = LOWER(%s) THEN 1
+                        ELSE 2
+                    END,
+                    l.cod_loja
+                    LIMIT 1
+                    """,
+                    [
+                        periodo_inicio,
+                        periodo_inicio,
+                        periodo_fim,
+                        periodo_fim,
+                        store_identifier,
+                        store_identifier,
+                        f"%{store_identifier}%",
+                        store_identifier,
+                        store_identifier,
+                    ],
                 )
                 row = cur.fetchone()
                 return cast(Mapping[str, Any], row) if isinstance(row, Mapping) else None

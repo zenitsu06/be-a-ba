@@ -40,4 +40,5 @@ def get_analytics_service() -> AnalyticsService:
     return AnalyticsService(
         analytics_repository=get_analytics_repository(),
         insight_service=get_insight_service(),
+        conversation_client=get_openrouter_client(),
     )

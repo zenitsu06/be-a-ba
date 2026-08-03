@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from app.llm.openrouter_client import LlmResult
+from app.llm.openrouter_client import LlmResult, parse_insight
 from app.repositories.insight_repository import InMemoryInsightRepository
 from app.repositories.semantic_repository import SemanticLayerRepository
 from app.schemas.insights import CalculoNodeRequest, InsightGerado, UsoTokens
@@ -55,3 +55,26 @@ def test_insight_service_reuses_cached_analysis() -> None:
     assert second.cache_hit is True
     assert first.calculo_hash == second.calculo_hash
     assert llm.calls == 1
+
+
+def test_openrouter_parser_accepts_fenced_json_with_extra_text() -> None:
+    content = """
+    ```json
+    {
+      "titulo": "Analise de Lojas e Estoque",
+      "resumo": "A analise das lojas revela alertas de estoque.",
+      "recomendacao": "Priorizar reposicao nas lojas criticas.",
+      "dados_origem": ["analytics"],
+      "periodo_analisado": "2026-07-01 a 2026-07-31",
+      "nivel_confianca": "medio",
+      "pontos_atencao": ["Validar estoque atual."]
+    }
+    ```
+    Texto extra que a LLM nao deveria ter enviado.
+    """
+
+    insight = parse_insight(content)
+
+    assert insight.titulo == "Analise de Lojas e Estoque"
+    assert insight.resumo == "A analise das lojas revela alertas de estoque."
+    assert insight.recomendacao == "Priorizar reposicao nas lojas criticas."
