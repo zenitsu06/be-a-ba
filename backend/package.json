@@ -1,5 +1,5 @@
 {
-  "name": "backend-node",
+  "name": "backend",
   "version": "1.0.0",
   "description": "Backend Node.js do projeto Oferte e Ganhe",
   "main": "server.js",

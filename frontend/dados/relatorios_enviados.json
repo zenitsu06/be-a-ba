@@ -1,0 +1,76 @@
+{
+  "relatorios": [
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-06-22 14:29:41",
+      "id_envio": "ENV-2026-006",
+      "lojaTexto": "LJ01 - Filial Porto Alegre",
+      "quantidade_enviada": 150,
+      "quantidade_recomendada": 100,
+      "quantidade_minima": 50,
+      "prioridade_ia": "Prioridade",
+      "divergencia": 25
+    },
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-06-15 14:30:00",
+      "id_envio": "ENV-2026-001",
+      "lojaTexto": "LJ01 - Filial Porto Alegre",
+      "quantidade_enviada": 100,
+      "quantidade_recomendada": 125,
+      "quantidade_minima": 50,
+      "prioridade_ia": "baixa",
+      "divergencia": "-"
+    },
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-06-16 09:15:00",
+      "id_envio": "ENV-2026-002",
+      "lojaTexto": "LJ02 - Filial Chapecó",
+      "quantidade_enviada": 50,
+      "quantidade_recomendada": 50,
+      "quantidade_minima": 40,
+      "prioridade_ia": "baixa",
+      "divergencia": 0
+    },
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-03-10 10:00:00",
+      "id_envio": "ENV-2026-003",
+      "lojaTexto": "LJ03 - Filial São Paulo",
+      "quantidade_enviada": 3298,
+      "quantidade_recomendada": 3298,
+      "quantidade_minima": 60,
+      "prioridade_ia": "Prioridade",
+      "divergencia": 8
+    },
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-04-05 11:00:00",
+      "id_envio": "ENV-2026-004",
+      "lojaTexto": "LJ04 - Filial Paraná",
+      "quantidade_enviada": 2000,
+      "quantidade_recomendada": 2000,
+      "quantidade_minima": 45,
+      "prioridade_ia": "baixa",
+      "divergencia": "-"
+    },
+    {
+      "nome": "Maria Gestora",
+      "enviado_em": "2026-06-23 09:27:53",
+      "data_hora_envio": "2026-05-22 16:20:00",
+      "id_envio": "ENV-2026-005",
+      "lojaTexto": "LJ05 - Filial Mato Grosso do Sul",
+      "quantidade_enviada": 1287,
+      "quantidade_recomendada": 1287,
+      "quantidade_minima": 30,
+      "prioridade_ia": "Prioridade",
+      "divergencia": "-"
+    }
+  ]
+}

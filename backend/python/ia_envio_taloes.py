@@ -7,9 +7,9 @@
   RF12-IA  : Ranqueamento inteligente de prioridade de envio
 
   Como usar:
-    1. Coloque este arquivo na pasta  /python/
+    1. Coloque este arquivo na pasta  /backend/python/
     2. Execute:  python ia_envio_taloes.py
-    3. O arquivo  ../dados/ia_envio_taloes.json  será gerado
+    3. O arquivo  ../../frontend/dados/ia_envio_taloes.json  será gerado
     4. O frontend (envio.js) lê esse JSON automaticamente
 ============================================================
 """
@@ -21,11 +21,13 @@ from datetime import datetime, timedelta
 
 # ── CAMINHOS ────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
-LOJAS_PATH  = os.path.join(BASE_DIR, '..', 'dados', 'lojas.json')
-TALOES_PATH = os.path.join(BASE_DIR, '..', 'dados', 'taloes.json')
-SAIDA_PATH  = os.path.join(BASE_DIR, '..', 'dados', 'ia_envio_taloes.json')
-NODE_ENV_PATH = os.path.join(PROJECT_DIR, 'backend-node', '.env')
+BACKEND_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
+PROJECT_DIR = os.path.abspath(os.path.join(BACKEND_DIR, '..'))
+FRONTEND_DIR = os.path.join(PROJECT_DIR, 'frontend')
+LOJAS_PATH  = os.path.join(FRONTEND_DIR, 'dados', 'lojas.json')
+TALOES_PATH = os.path.join(FRONTEND_DIR, 'dados', 'taloes.json')
+SAIDA_PATH  = os.path.join(FRONTEND_DIR, 'dados', 'ia_envio_taloes.json')
+NODE_ENV_PATH = os.path.join(BACKEND_DIR, '.env')
 
 
 # ── CARREGAR DADOS ───────────────────────────────────────────

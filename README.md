@@ -1,7 +1,7 @@
 ### 1. Backend Node.js
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\backend-node"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend"
 npm run dev
 ```
 
@@ -23,7 +23,7 @@ http://localhost:8000/login/login.html
 Em outro terminal:
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\ia"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend\ia"
 python -m uvicorn app.main:app --reload --port 8001
 ```
 
@@ -42,7 +42,7 @@ Importante: o backend Node deve ficar na porta `8000` e a IA deve ficar na porta
 O backend Node le o arquivo:
 
 ```text
-C:\Users\kaua\Downloads\be-a-ba\backend-node\.env
+C:\Users\kaua\Downloads\be-a-ba\backend\.env
 ```
 
 Variaveis mais importantes:
@@ -64,7 +64,7 @@ O backend usa essas informacoes para abrir conexao com o PostgreSQL e para chama
 A IA le o arquivo:
 
 ```text
-C:\Users\kaua\Downloads\be-a-ba\ia\.env
+C:\Users\kaua\Downloads\be-a-ba\backend\ia\.env
 ```
 
 Variaveis principais:
@@ -127,7 +127,7 @@ Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8001/health"
 Entre na pasta da IA:
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\ia"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend\ia"
 ```
 
 Opcionalmente, veja se o arquivo `.env` existe:
@@ -153,7 +153,7 @@ Esse arquivo serve para testar somente a comunicacao com o OpenRouter. Ele carre
 ### Rodar testes automatizados da camada de IA
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\ia"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend\ia"
 python -m pytest
 ```
 
@@ -161,13 +161,13 @@ python -m pytest
 
 ```powershell
 cd "C:\Users\kaua\Downloads\be-a-ba"
-& "C:\Program Files\nodejs\node.exe" --check ".\login\login.js"
+& "C:\Program Files\nodejs\node.exe" --check ".\frontend\login\login.js"
 ```
 
 Para checar os arquivos do backend:
 
 ```powershell
-Get-ChildItem ".\backend-node\src" -Recurse -File -Filter *.js | ForEach-Object {
+Get-ChildItem ".\backend\src" -Recurse -File -Filter *.js | ForEach-Object {
   & "C:\Program Files\nodejs\node.exe" --check $_.FullName
 }
 ```
@@ -191,19 +191,8 @@ Get-ChildItem ".\backend-node\src" -Recurse -File -Filter *.js | ForEach-Object 
 ## Estrutura Do Projeto
 
 ```text
-administrador/      Telas administrativas e dashboard
-EnvioTaloes/        Tela de envio e edicao de remessas
-GerenciarPerfis/    Gerenciamento de usuarios, perfis e vinculos
-gestor/             Dashboard e relatorios gerenciais
-login/              Tela de login e recuperacao de senha
-Lojas/              Cadastro e manutencao de lojas
-Recebimento/        Tela de recebimento de taloes
-relatorios/         Arquivos exportados
-shared/             Configuracoes, estilos e scripts compartilhados
-dados/              Arquivos auxiliares e resultados gerados
-backend-node/       Backend principal em Node.js/Express
-ia/                 Camada analitica e IA em Python/FastAPI
-python/             Script legado de IA para envio de taloes
+frontend/           Telas HTML/CSS/JS, dados locais, assets compartilhados e relatorios
+backend/            Backend principal em Node.js/Express, IA Python e camada FastAPI
 ```
 
 ## Arquitetura Geral
@@ -305,7 +294,7 @@ GET    /api/relatorios/estoque
 
 ### Conexao com o banco de dados
 
-A conexao fica em `backend-node/src/database/conexao.js`.
+A conexao fica em `backend/src/database/conexao.js`.
 
 O arquivo cria um `Pool` do PostgreSQL usando as variaveis do `.env`. O `Pool` permite reaproveitar conexoes em vez de abrir uma nova conexao para cada requisicao.
 
@@ -345,7 +334,7 @@ Essas views ajudam o backend e a IA a buscar dados prontos para exibicao e anali
 A camada de IA fica em:
 
 ```text
-C:\Users\kaua\Downloads\be-a-ba\ia
+C:\Users\kaua\Downloads\be-a-ba\backend\ia
 ```
 
 Ela roda separada do backend Node:
@@ -587,7 +576,7 @@ Script de teste manual da chave OpenRouter. Ele nao inicia o backend e nao subst
 O arquivo:
 
 ```text
-dados/ia_envio_taloes.json
+frontend/dados/ia_envio_taloes.json
 ```
 
 guarda um resultado gerado por rotina de IA/script legado. Ele funciona como uma saida materializada: o sistema pode ler esse JSON para exibir analises ja geradas.
@@ -633,4 +622,3 @@ Content-Type: application/json
   "status": "Ativo"
 }
 ```
-

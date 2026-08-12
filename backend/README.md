@@ -22,7 +22,7 @@ src/
   server.js        montagem do Express e inicializacao
 ```
 
-O arquivo `server.js` da raiz do `backend-node` foi mantido como bootstrap para preservar:
+O arquivo `server.js` da raiz do `backend` foi mantido como bootstrap para preservar:
 
 ```powershell
 npm start

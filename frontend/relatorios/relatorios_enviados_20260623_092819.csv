@@ -1,0 +1,7 @@
+﻿data_hora_envio;divergencia;enviado_em;id_envio;lojaTexto;nome;prioridade_ia;quantidade_enviada;quantidade_minima;quantidade_recomendada
+2026-06-22 14:29:41;25;2026-06-23 09:27:53;ENV-2026-006;LJ01 - Filial Porto Alegre;Maria Gestora;Prioridade;150;50;100
+2026-06-15 14:30:00;-;2026-06-23 09:27:53;ENV-2026-001;LJ01 - Filial Porto Alegre;Maria Gestora;baixa;100;50;125
+2026-06-16 09:15:00;0;2026-06-23 09:27:53;ENV-2026-002;LJ02 - Filial Chapecó;Maria Gestora;baixa;50;40;50
+2026-03-10 10:00:00;8;2026-06-23 09:27:53;ENV-2026-003;LJ03 - Filial São Paulo;Maria Gestora;Prioridade;3298;60;3298
+2026-04-05 11:00:00;-;2026-06-23 09:27:53;ENV-2026-004;LJ04 - Filial Paraná;Maria Gestora;baixa;2000;45;2000
+2026-05-22 16:20:00;-;2026-06-23 09:27:53;ENV-2026-005;LJ05 - Filial Mato Grosso do Sul;Maria Gestora;Prioridade;1287;30;1287

@@ -6,7 +6,7 @@ Este documento explica a estrutura completa do projeto `be-a-ba`, desde o fronte
 
 O sistema `Oferte e Ganhe` controla lojas, usuarios, perfis, estoque, envio de taloes, recebimento de taloes, manutencoes, relatorios e analises de IA.
 
-A arquitetura planejada cita `React -> Node.js -> PostgreSQL`, mas a implementacao atual do frontend esta em HTML, CSS e JavaScript puro, servido pelo backend Express. O backend Node.js e a fonte oficial das rotas `/api/...`; o PostgreSQL guarda os dados operacionais; a pasta `python/` possui uma IA operacional/simulada para estoque e envio de taloes; e a pasta `ia/` contem a nova camada Python/FastAPI preparada para insights com LLM e historico em banco separado.
+A arquitetura planejada cita `React -> Node.js -> PostgreSQL`, mas a implementacao atual do frontend esta em HTML, CSS e JavaScript puro, servido pelo backend Express a partir da pasta `frontend/`. O backend Node.js fica em `backend/` e e a fonte oficial das rotas `/api/...`; o PostgreSQL guarda os dados operacionais; `backend/python/` possui uma IA operacional/simulada para estoque e envio de taloes; e `backend/ia/` contem a nova camada Python/FastAPI preparada para insights com LLM e historico em banco separado.
 
 Fluxo macro:
 
@@ -39,7 +39,7 @@ npm start
 Ou direto pelo backend:
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\backend-node"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend"
 npm start ou nmp run dev
 ```
 
@@ -52,7 +52,7 @@ http://localhost:8000/login/login.html
 Camada IA FastAPI:
 
 ```powershell
-cd "C:\Users\kaua\Downloads\be-a-ba\ia"
+cd "C:\Users\kaua\Downloads\be-a-ba\backend\ia"
 uvicorn app.main:app --reload
 ```
 
@@ -72,22 +72,23 @@ uvicorn app.main:app --reload --port 8001
 
 ```text
 be-a-ba/
-  administrador/
-  backend-node/
-  dados/
-  EnvioTaloes/
-  GerenciarPerfis/
-  gestor/
-  ia/
-  login/
-  Lojas/
+  backend/
+    ia/
+    python/
+    src/
+  frontend/
+    administrador/
+    dados/
+    EnvioTaloes/
+    GerenciarPerfis/
+    gestor/
+    login/
+    Lojas/
+    Recebimento/
+    relatorios/
+    shared/
+    usuario/
   node_modules/
-  python/
-  Recebimento/
-  relatorios/
-  shared/
-  usuario/
-  index.html
   package.json
   package-lock.json
   README.md
@@ -101,8 +102,8 @@ Arquivo inicial simples do projeto. O fluxo real de uso normalmente entra em `lo
 
 Arquivo Node da raiz. Define scripts para iniciar o backend:
 
-- `npm start`: chama `npm --prefix backend-node start`.
-- `npm run dev`: chama `npm --prefix backend-node run dev`.
+- `npm start`: chama `npm --prefix backend start`.
+- `npm run dev`: chama `npm --prefix backend run dev`.
 
 Tambem lista dependencias como `express`, `pg`, `cors`, `dotenv` e `bcrypt`.
 
@@ -348,7 +349,7 @@ Pasta destinada a CSVs e arquivos exportados pelo backend/fluxo de relatorios.
 O backend fica em:
 
 ```text
-backend-node/
+backend/
 ```
 
 Ele usa Express, PostgreSQL via `pg`, variaveis de ambiente com `dotenv`, CORS e middlewares de erro.
@@ -366,11 +367,11 @@ HTTP /api/...
   -> JSON de resposta
 ```
 
-### `backend-node/server.js`
+### `backend/server.js`
 
 Bootstrap da raiz do backend. Mantem compatibilidade com `npm start` e carrega `src/server.js`.
 
-### `backend-node/src/server.js`
+### `backend/src/server.js`
 
 Monta a aplicacao Express:
 
@@ -386,7 +387,7 @@ Como ele serve arquivos estaticos, a URL abaixo funciona pelo proprio backend:
 http://localhost:8000/login/login.html
 ```
 
-### `backend-node/src/config/env.js`
+### `backend/src/config/env.js`
 
 Centraliza configuracoes:
 
@@ -399,9 +400,9 @@ Centraliza configuracoes:
 - caminho do JSON de saida da IA;
 - configuracao OpenRouter do backend antigo.
 
-Carrega `backend-node/.env`.
+Carrega `backend/.env`.
 
-### `backend-node/src/database/conexao.js`
+### `backend/src/database/conexao.js`
 
 Cria o pool PostgreSQL com `pg.Pool`.
 
@@ -414,7 +415,7 @@ Funcoes principais:
 
 Tambem valida se a senha do banco foi configurada.
 
-### `backend-node/src/routes/`
+### `backend/src/routes/`
 
 Controllers HTTP. Cada arquivo recebe request/response e chama `services`.
 
@@ -436,7 +437,7 @@ Rotas principais:
 - `relatorios.routes.js`: relatorios, CSV, exportacao e envio.
 - `index.js`: junta todas as rotas em um unico router.
 
-### `backend-node/src/services/index.js`
+### `backend/src/services/index.js`
 
 Camada de regras de negocio. Ela valida entrada, decide regras operacionais e chama o repository.
 
@@ -453,7 +454,7 @@ Exemplos:
 - `reportRows`: monta dados dos relatorios.
 - `answerChatbot`: responde perguntas simples do assistente.
 
-### `backend-node/src/repositories/oferte.repository.js`
+### `backend/src/repositories/oferte.repository.js`
 
 Camada de acesso ao banco. Contem SQL puro para:
 
@@ -473,7 +474,7 @@ Camada de acesso ao banco. Contem SQL puro para:
 
 Essa camada nao deveria conter regra de negocio complexa; sua funcao e buscar, inserir, atualizar ou excluir dados no PostgreSQL.
 
-### `backend-node/src/utils/`
+### `backend/src/utils/`
 
 Arquivos auxiliares:
 
@@ -482,7 +483,7 @@ Arquivos auxiliares:
 - `files.js`: leitura de JSON.
 - `csv.js`: conversao de dados para CSV.
 
-### `backend-node/src/middlewares/`
+### `backend/src/middlewares/`
 
 - `async-route.js`: envolve rotas async e encaminha erros para o Express.
 - `error-handler.js`: converte erros em JSON padronizado. Para `/api`, 404 vira `{ erro: 'Rota nao encontrada.' }`.
@@ -496,7 +497,7 @@ Exemplo: a tela de lojas chama `GET /api/lojas`.
 2. O navegador carrega Lojas/lojas.js.
 3. O JS le window.OFERTE_CONFIG.API_BASE.
 4. O JS executa fetch("http://localhost:8000/api/lojas").
-5. O Express recebe a requisicao em backend-node/src/server.js.
+5. O Express recebe a requisicao em backend/src/server.js.
 6. Como a rota comeca com /api, ela entra em routes/index.js.
 7. routes/index.js encaminha para lojas.routes.js.
 8. lojas.routes.js chama service.listStores().
@@ -632,7 +633,7 @@ Essa IA calcula alertas e previsoes simuladas/deterministicas de estoque:
 
 Fontes de dados:
 
-1. Tenta conectar no PostgreSQL operacional usando `backend-node/.env`.
+1. Tenta conectar no PostgreSQL operacional usando `backend/.env`.
 2. Se nao conseguir, usa JSONs de `dados/`.
 
 Saidas:
@@ -856,4 +857,3 @@ FastAPI IA nova
 Banco IA
   Guarda Semantic Layer, calculos, prompts, execucoes, tokens, insights e logs.
 ```
-

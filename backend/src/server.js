@@ -10,7 +10,7 @@ const app = express();
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: env.maxBodyBytes }));
 app.use('/api', routes);
-app.use(express.static(env.projectRoot));
+app.use(express.static(env.frontendRoot));
 app.use(notFoundHandler);
 app.use(errorHandler);
 

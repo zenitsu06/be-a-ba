@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 
 const backendRoot = path.resolve(__dirname, '..', '..');
 const projectRoot = path.resolve(backendRoot, '..');
+const frontendRoot = path.join(projectRoot, 'frontend');
 
 dotenv.config({ path: path.join(backendRoot, '.env'), quiet: true });
 
@@ -17,6 +18,7 @@ const dbPassword = String(process.env.DB_PASSWORD ?? process.env.OFERTE_DB_PASSW
 module.exports = {
   backendRoot,
   projectRoot,
+  frontendRoot,
   port: toInt(process.env.PORT || process.env.OFERTE_BACKEND_PORT, 8000),
   corsOrigin: process.env.CORS_ORIGIN || process.env.OFERTE_BACKEND_ALLOW_ORIGIN || '*',
   maxBodyBytes: process.env.MAX_BODY_BYTES || process.env.OFERTE_BACKEND_MAX_BODY_BYTES || '1mb',
@@ -35,8 +37,8 @@ module.exports = {
   },
   ai: {
     pythonBin: process.env.PYTHON_BIN || process.env.PYTHON || '',
-    scriptPath: path.join(projectRoot, 'python', 'ia_envio_taloes.py'),
-    outputPath: path.join(projectRoot, 'dados', 'ia_envio_taloes.json'),
+    scriptPath: path.join(backendRoot, 'python', 'ia_envio_taloes.py'),
+    outputPath: path.join(frontendRoot, 'dados', 'ia_envio_taloes.json'),
     openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
     openRouterModel: process.env.OPENROUTER_MODEL || '',
     serviceUrl: process.env.IA_SERVICE_URL || process.env.OFERTE_IA_SERVICE_URL || 'http://127.0.0.1:8001',

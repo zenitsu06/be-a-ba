@@ -15,7 +15,7 @@ const pool = new Pool({
 
 function assertDatabaseConfig() {
   if (env.database.missingPassword) {
-    throw new Error('Configure DB_PASSWORD no backend-node/.env ou use DB_ALLOW_EMPTY_PASSWORD=1.');
+    throw new Error('Configure DB_PASSWORD no backend/.env ou use DB_ALLOW_EMPTY_PASSWORD=1.');
   }
 }
 
