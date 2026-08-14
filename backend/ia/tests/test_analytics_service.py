@@ -62,6 +62,9 @@ class FakeAnalyticsRepository:
             {"cargo": "lojista", "total": 1},
         ]
 
+    def fetch_user_summary(self) -> Mapping[str, Any]:
+        return {"total_cadastrados": 9, "total_ativos": 8, "total_inativos": 1}
+
     def fetch_received_total_by_month(self, year: int, month: int) -> Mapping[str, Any]:
         return {"total_taloes": 80, "total_recebimentos": 2}
 
@@ -244,6 +247,31 @@ def test_analytics_service_answers_total_stores_question() -> None:
     assert insight_service.calls == 0
 
 
+def test_analytics_service_answers_total_users_question() -> None:
+    insight_service = FakeInsightService()
+    conversation_client = FakeConversationClient()
+    service = AnalyticsService(
+        analytics_repository=FakeAnalyticsRepository(),
+        insight_service=insight_service,
+        conversation_client=conversation_client,
+    )
+
+    response = service.responder_chat(
+        ChatPerguntaRequest(
+            pergunta="Quantos usuarios nos temos cadastrados no nosso sistema?",
+            periodo_inicio=date(2026, 7, 1),
+            periodo_fim=date(2026, 7, 24),
+        )
+    )
+
+    assert response.intencao == "total_usuarios"
+    assert "9 usuario" in response.resposta
+    assert "8 ativo" in response.resposta
+    assert "1 inativo" in response.resposta
+    assert insight_service.calls == 0
+    assert conversation_client.calls == 0
+
+
 def test_analytics_service_answers_store_current_stock_question() -> None:
     service = AnalyticsService(
         analytics_repository=FakeAnalyticsRepository(),
@@ -319,6 +347,32 @@ def test_analytics_service_uses_llm_only_for_analytical_chat() -> None:
     assert insight_service.last_request.indicador == "Chat analitico"
     assert "kpis" in insight_service.last_request.calculos
     assert len(insight_service.last_request.calculos["top_alertas_estoque"]) == 1
+    assert insight_service.last_request.calculos["origem_dados"] == "postgres_readonly_via_backend"
+    contexto_banco = insight_service.last_request.calculos["contexto_banco"]
+    assert contexto_banco["lojas_por_uf"][0]["uf"] == "SP"
+    assert contexto_banco["usuarios"]["total_cadastrados"] == 9
+    assert contexto_banco["usuarios_ativos_por_cargo"][0]["cargo"] == "administrador"
+
+
+def test_analytics_service_routes_database_questions_to_llm_context() -> None:
+    insight_service = FakeInsightService()
+    service = AnalyticsService(
+        analytics_repository=FakeAnalyticsRepository(),
+        insight_service=insight_service,
+    )
+
+    response = service.responder_chat(
+        ChatPerguntaRequest(
+            pergunta="O que voce consegue analisar nos dados do banco?",
+            periodo_inicio=date(2026, 7, 1),
+            periodo_fim=date(2026, 7, 24),
+        )
+    )
+
+    assert response.intencao == "insight_analitico"
+    assert insight_service.calls == 1
+    assert "contexto_banco" in insight_service.last_request.calculos
+    assert insight_service.last_request.calculos["contexto_banco"]["total_lojas_analisadas"] == 2
 
 
 def test_analytics_service_answers_stock_status_groups() -> None:

@@ -12,6 +12,17 @@ let relatoriosEnviados = [];
 let relatorioGerado = null;
 let relatorioSelecionadoLinhas = [];
 
+const COLUNAS_RELATORIO_GESTOR_PADRAO = [
+    ['data', 'Data'],
+    ['nome_usuario', 'Nome do usuario que gerou aquele relatorio'],
+    ['matricula', 'Matricula'],
+    ['quantidade_enviada_estoque', 'Quantidade enviada para o estoque daquela loja'],
+    ['quantidade_recomendada', 'Quantidade recomendada'],
+    ['quantidade_minima', 'Quantidade minima'],
+    ['status_prioridade_loja', 'Status de prioridade daquela loja'],
+    ['divergencia', 'Divergencia']
+];
+
 const COLUNAS_RELATORIOS = {
     historico_relatorios: [
         ['data_hora', 'Data / hora'],
@@ -105,6 +116,9 @@ const COLUNAS_RELATORIOS = {
         ['enviado_em', 'Enviado em']
     ]
 };
+
+COLUNAS_RELATORIOS.gestor = COLUNAS_RELATORIO_GESTOR_PADRAO;
+COLUNAS_RELATORIOS.relatorios_enviados = COLUNAS_RELATORIO_GESTOR_PADRAO;
 
 document.addEventListener('DOMContentLoaded', async () => {
     iniciarRelatorios();
@@ -222,7 +236,7 @@ async function carregarRelatorioSelecionado(tipo) {
 
 async function montarLinhasRelatorioLocal(tipo) {
     if (tipo === 'historico_relatorios') return montarHistoricoRelatorios();
-    if (tipo === 'gestor') return montarLinhasRelatorio();
+    if (tipo === 'gestor') return montarLinhasRelatorio().map(linha => normalizarLinhaCsvRelatorio(linha));
     if (tipo === 'relatorios_enviados') return relatoriosEnviados.map(linha => normalizarLinhaRelatorio(tipo, linha));
 
     if (tipo === 'usuarios' || tipo === 'perfis') {
@@ -298,7 +312,7 @@ function obterTipoRelatorioAtual() {
 
 function normalizarLinhaRelatorio(tipo, linha) {
     if (tipo === 'gestor' || tipo === 'relatorios_enviados') {
-        return normalizarRelatorioEnviado(linha);
+        return normalizarLinhaCsvRelatorio(normalizarRelatorioEnviado(linha));
     }
     return linha;
 }
@@ -441,7 +455,9 @@ function montarLinhasRelatorio() {
 }
 
 function normalizarRelatorioEnviado(linha) {
+    const dados = linha.dados && typeof linha.dados === 'object' ? linha.dados : {};
     return {
+        ...dados,
         ...linha,
         id_envio: linha.id_envio || linha.remessa,
         data_hora_envio: linha.data_hora_envio || linha.data_hora || linha.enviado_em,
@@ -449,6 +465,23 @@ function normalizarRelatorioEnviado(linha) {
         quantidade_recomendada: linha.quantidade_recomendada || linha.recomendada,
         quantidade_minima: linha.quantidade_minima || linha.minima,
         prioridade_ia: linha.prioridade_ia || linha.prioridade
+    };
+}
+
+function normalizarLinhaCsvRelatorio(linha, dataAtual = false) {
+    const dataGeracao = dataAtual
+        ? obterDataISO(formatarDataHoraStorage(new Date()))
+        : obterDataISO(linha.data || linha.data_geracao || linha.data_hora || linha.data_hora_envio || linha.enviado_em || formatarDataHoraStorage(new Date()));
+
+    return {
+        data: dataGeracao,
+        nome_usuario: linha.nome_usuario || linha.nome || usuarioLogado?.nome || 'Gestor',
+        matricula: linha.matricula || linha.matricula_usuario || usuarioLogado?.matricula || '',
+        quantidade_enviada_estoque: linha.quantidade_enviada_estoque || linha.quantidade_enviada || '',
+        quantidade_recomendada: linha.quantidade_recomendada || linha.recomendada || '',
+        quantidade_minima: linha.quantidade_minima || linha.minima || '',
+        status_prioridade_loja: linha.status_prioridade_loja || linha.prioridade_ia || linha.prioridade || '',
+        divergencia: linha.divergencia || linha.quantidade_divergencia || ''
     };
 }
 
@@ -483,16 +516,7 @@ async function enviarRelatorioParaAdmin() {
     const payload = {
         nome_usuario: usuarioLogado.nome || 'Gestor',
         matricula_usuario: usuarioLogado.matricula || '',
-        linhas: linhas.map(linha => ({
-            data_hora_envio: linha.data_hora_envio,
-            id_envio: linha.id_envio,
-            lojaTexto: linha.lojaTexto,
-            quantidade_enviada: linha.quantidade_enviada,
-            quantidade_recomendada: linha.quantidade_recomendada,
-            quantidade_minima: linha.quantidade_minima,
-            prioridade_ia: linha.prioridade_ia,
-            divergencia: linha.divergencia
-        }))
+        linhas: linhas.map(linha => normalizarLinhaCsvRelatorio(linha, true))
     };
 
     const respostaApi = await apiPost('/api/relatorios/enviar', payload);
@@ -523,7 +547,10 @@ async function enviarRelatorioParaAdmin() {
 async function exportarCsvPython() {
     const tipo = obterTipoRelatorioAtual();
     const colunas = COLUNAS_RELATORIOS[tipo] || COLUNAS_RELATORIOS.historico_relatorios;
-    const linhas = filtrarLinhas(relatorioSelecionadoLinhas);
+    const linhasFiltradas = filtrarLinhas(relatorioSelecionadoLinhas);
+    const linhas = ['gestor', 'relatorios_enviados'].includes(tipo)
+        ? linhasFiltradas.map(linha => normalizarLinhaCsvRelatorio(linha, true))
+        : linhasFiltradas;
 
     window.OferteReports?.exportarCsv({
         nome: tipo === 'historico_relatorios' ? 'Histórico de relatórios' : `Relatório ${tipo}`,

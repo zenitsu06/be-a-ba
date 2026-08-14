@@ -376,6 +376,7 @@ function montarLinhasRecebimento() {
             remessa: envio.id_envio,
             lojista: usuarioLogado.matricula,
             email: usuarioLogado.email || '-',
+            quantidade_enviada: envio.quantidade_enviada,
             recebidos,
             divergencia,
             status,
@@ -527,6 +528,31 @@ function gerarCodigoRecebimento() {
 }
 
 async function exportarCsvPython() {
+    const minimo = lojaAtual?.quantidade_minima ?? '-';
+    const recomendado = lojaAtual?.quantidade_recomendada ?? '-';
+    const prioridade = document.getElementById('label-situacao')?.innerText || '-';
+    const linhasPadrao = obterLinhasVisiveisUsuario().map(linha =>
+        window.OferteReports?.normalizarLinhaRelatorioEstoque
+            ? window.OferteReports.normalizarLinhaRelatorioEstoque(linha, usuarioLogado, {
+                quantidade_enviada_estoque: linha.quantidade_enviada || linha.recebidos,
+                quantidade_recomendada: recomendado,
+                quantidade_minima: minimo,
+                status_prioridade_loja: prioridade,
+                divergencia: linha.divergencia
+            })
+            : linha
+    );
+
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatorio de recebimentos',
+        origem: 'Painel Lojista',
+        arquivo: 'recebimentos.csv',
+        usuario: usuarioLogado,
+        linhas: linhasPadrao,
+        colunas: window.OferteReports?.colunasRelatorioEstoque?.() || []
+    });
+    return;
+
     window.OferteReports?.exportarCsv({
         nome: 'Relatório de recebimentos',
         origem: 'Painel Lojista',

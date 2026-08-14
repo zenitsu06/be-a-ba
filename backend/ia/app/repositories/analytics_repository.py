@@ -123,6 +123,28 @@ class AnalyticsRepository:
                 cur.execute(sql, params)
                 return _rows(cur.fetchall())
 
+    def fetch_user_summary(self) -> Mapping[str, Any]:
+        pool = get_analytics_pool()
+        if pool is None:
+            raise RuntimeError("POSTGRES_READONLY_DSN nao foi configurado.")
+
+        with pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    SELECT COUNT(*)::INT AS total_cadastrados,
+                           COUNT(*) FILTER (
+                               WHERE COALESCE(status, 'Ativo') <> 'Inativo'
+                           )::INT AS total_ativos,
+                           COUNT(*) FILTER (
+                               WHERE COALESCE(status, 'Ativo') = 'Inativo'
+                           )::INT AS total_inativos
+                    FROM public.usuarios
+                    """
+                )
+                row = cur.fetchone()
+                return cast(Mapping[str, Any], row) if isinstance(row, Mapping) else {}
+
     def fetch_received_total_by_month(self, year: int, month: int) -> Mapping[str, Any]:
         pool = get_analytics_pool()
         if pool is None:

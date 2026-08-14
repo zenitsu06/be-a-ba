@@ -502,6 +502,28 @@ function obterLojasCriticasParaSugestao() {
 }
 
 function exportarRelatorioEnvios() {
+    const linhasPadrao = obterEnviosVisiveis().map(linha =>
+        window.OferteReports?.normalizarLinhaRelatorioEstoque
+            ? window.OferteReports.normalizarLinhaRelatorioEstoque(linha, usuarioLogado, {
+                quantidade_enviada_estoque: linha.quantidade_enviada,
+                quantidade_recomendada: linha.quantidade_recomendada,
+                quantidade_minima: linha.quantidade_minima,
+                status_prioridade_loja: linha.prioridade_ia || linha.status,
+                divergencia: linha.divergencia || '-'
+            })
+            : linha
+    );
+
+    exportarCsvComHistorico({
+        nome: 'Relatorio de envios de taloes',
+        origem: 'Enviar Taloes',
+        arquivo: 'envios-taloes.csv',
+        usuario: usuarioLogado,
+        linhas: linhasPadrao,
+        colunas: window.OferteReports?.colunasRelatorioEstoque?.() || []
+    });
+    return;
+
     const linhas = obterEnviosVisiveis();
     exportarCsvComHistorico({
         nome: 'Relatório de envios de talões',

@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const asyncRoute = require('../middlewares/async-route');
-const { listSentReports, reportRows, submitReport, toCsv } = require('../services');
+const { listSentReports, reportColumns, reportRows, submitReport, toCsv } = require('../services');
 
 const router = Router();
 
@@ -10,7 +10,7 @@ router.get('/relatorios/enviados', asyncRoute(async (_req, res) => {
 
 router.get('/relatorios/:tipo.csv', asyncRoute(async (req, res) => {
   const rows = await reportRows(req.params.tipo, req.query);
-  const csv = toCsv(rows);
+  const csv = toCsv(rows, reportColumns(req.params.tipo));
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${req.params.tipo}.csv"`);
   res.send(`\uFEFF${csv}`);
@@ -18,7 +18,7 @@ router.get('/relatorios/:tipo.csv', asyncRoute(async (req, res) => {
 
 router.get('/relatorios/:tipo/exportar', asyncRoute(async (req, res) => {
   const rows = await reportRows(req.params.tipo, req.query);
-  const csv = toCsv(rows);
+  const csv = toCsv(rows, reportColumns(req.params.tipo));
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${req.params.tipo}.csv"`);
   res.send(`\uFEFF${csv}`);
@@ -36,7 +36,7 @@ router.post('/relatorios/exportar', asyncRoute(async (req, res) => {
   const rows = await reportRows(req.body.tipo, req.body.filtros || {});
   res.json({
     nome: `${req.body.tipo || 'relatorio'}.csv`,
-    csv: toCsv(rows),
+    csv: toCsv(rows, reportColumns(req.body.tipo)),
   });
 }));
 

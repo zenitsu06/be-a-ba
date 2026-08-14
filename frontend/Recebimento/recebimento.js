@@ -297,6 +297,31 @@ function obterLinhasFiltradas() {
 }
 
 function exportarRelatorioRecebimentos() {
+    const linhasPadrao = obterLinhasFiltradas().map(item => {
+        const loja = buscarLoja(item.codigoLoja);
+        return window.OferteReports?.normalizarLinhaRelatorioEstoque
+            ? window.OferteReports.normalizarLinhaRelatorioEstoque(item, usuarioLogado, {
+                quantidade_enviada_estoque: item.quantidadeEnviada,
+                quantidade_recomendada: loja?.quantidade_recomendada,
+                quantidade_minima: loja?.quantidade_minima,
+                status_prioridade_loja: item.analise?.titulo || item.statusTexto,
+                divergencia: item.divergenciaTexto
+            })
+            : item;
+    });
+
+    if (window.OferteReports?.exportarCsv) {
+        window.OferteReports.exportarCsv({
+            nome: 'Relatorio de recebimento de taloes',
+            origem: 'Recebimento',
+            arquivo: 'recebimento-taloes.csv',
+            usuario: usuarioLogado,
+            linhas: linhasPadrao,
+            colunas: window.OferteReports?.colunasRelatorioEstoque?.() || []
+        });
+    }
+    return;
+
     const linhas = obterLinhasFiltradas().map(item => ({
         data_envio: item.dataEnvio,
         remessa: item.remessa,

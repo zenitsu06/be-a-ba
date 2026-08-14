@@ -599,6 +599,31 @@ function salvarDadosERefrescar() {
 }
 
 function exportarRelatorioUsuarios() {
+    const usuarioAtual = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+    const linhasPadrao = (usuariosVisiveis.length ? usuariosVisiveis : listaUsuarios).map(user =>
+        window.OferteReports?.normalizarLinhaRelatorioEstoque
+            ? window.OferteReports.normalizarLinhaRelatorioEstoque(user, usuarioAtual, {
+                nome_usuario: usuarioAtual?.nome || 'Administrador',
+                matricula: usuarioAtual?.matricula || '',
+                quantidade_enviada_estoque: '-',
+                quantidade_recomendada: '-',
+                quantidade_minima: '-',
+                status_prioridade_loja: '-',
+                divergencia: '-'
+            })
+            : user
+    );
+
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatorio de usuarios',
+        origem: 'Gerenciar Perfis',
+        arquivo: 'usuarios.csv',
+        usuario: usuarioAtual,
+        linhas: linhasPadrao,
+        colunas: window.OferteReports?.colunasRelatorioEstoque?.() || []
+    });
+    return;
+
     const linhas = (usuariosVisiveis.length ? usuariosVisiveis : listaUsuarios).map(user => ({
         matricula: user.matricula,
         nome: user.nome,

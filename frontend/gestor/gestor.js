@@ -239,19 +239,20 @@ function gerarRelatorioGestor() {
         alert('Nao ha dados na tabela para gerar relatorio.');
         return;
     }
+    const linhasRelatorio = linhas.map(normalizarLinhaCsvGestor);
 
     localStorage.setItem('relatorioGestorGerado', JSON.stringify({
         criado_em: formatarDataHoraStorage(new Date()),
         nome_usuario: usuarioLogado.nome || 'Gestor',
         matricula_usuario: usuarioLogado.matricula || '',
-        linhas
+        linhas: linhasRelatorio
     }));
     window.OferteReports?.registrarRelatorio({
         nome: 'Relatório do gestor',
         origem: 'Dashboard Gestor',
         arquivo: 'relatorio-gestor.csv',
         usuario: usuarioLogado,
-        linhas,
+        linhas: linhasRelatorio,
         colunas: colunasRelatorioGestor()
     });
     window.location.href = './relatorios.html';
@@ -307,6 +308,16 @@ function normalizarTextoPrioridade(valor) {
 
 function colunasRelatorioGestor() {
     return [
+        ['data', 'Data'],
+        ['nome_usuario', 'Nome do usuario que gerou aquele relatorio'],
+        ['matricula', 'Matricula'],
+        ['quantidade_enviada_estoque', 'Quantidade enviada para o estoque daquela loja'],
+        ['quantidade_recomendada', 'Quantidade recomendada'],
+        ['quantidade_minima', 'Quantidade minima'],
+        ['status_prioridade_loja', 'Status de prioridade daquela loja'],
+        ['divergencia', 'Divergencia']
+    ];
+    return [
         ['data_hora_envio', 'Data / hora'],
         ['id_envio', 'Remessa'],
         ['lojaTexto', 'Loja'],
@@ -319,7 +330,7 @@ function colunasRelatorioGestor() {
 }
 
 function exportarRelatorioGestor() {
-    const linhas = obterLinhasVisiveisGestor();
+    const linhas = obterLinhasVisiveisGestor().map(normalizarLinhaCsvGestor);
     window.OferteReports?.exportarCsv({
         nome: 'Relatório do gestor',
         origem: 'Dashboard Gestor',
@@ -328,6 +339,19 @@ function exportarRelatorioGestor() {
         linhas,
         colunas: colunasRelatorioGestor()
     });
+}
+
+function normalizarLinhaCsvGestor(linha) {
+    return {
+        data: obterDataISO(formatarDataHoraStorage(new Date())),
+        nome_usuario: usuarioLogado?.nome || 'Gestor',
+        matricula: usuarioLogado?.matricula || '',
+        quantidade_enviada_estoque: linha.quantidade_enviada || '',
+        quantidade_recomendada: linha.quantidade_recomendada || '',
+        quantidade_minima: linha.quantidade_minima || '',
+        status_prioridade_loja: linha.prioridade_ia || '',
+        divergencia: linha.divergencia || ''
+    };
 }
 
 async function apiGet(route) {

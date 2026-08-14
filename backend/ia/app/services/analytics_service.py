@@ -103,6 +103,9 @@ class AnalyticsDataSource(Protocol):
     def fetch_user_role_counts(self, store_identifier: str | None = None) -> list[Mapping[str, Any]]:
         ...
 
+    def fetch_user_summary(self) -> Mapping[str, Any]:
+        ...
+
     def fetch_received_total_by_month(self, year: int, month: int) -> Mapping[str, Any]:
         ...
 
@@ -187,11 +190,13 @@ class AnalyticsService:
         kpis_payload: list[dict[str, Any]] = [
             item.model_dump(mode="json") for item in resumo.kpis
         ]
-        calculos: dict[str, Any] = {
-            "kpis": kpis_payload,
-            "top_alertas_estoque": top_alertas,
-            "total_lojas_analisadas": len(resumo.estoque_lojas),
-        }
+        calculos: dict[str, Any] = self._database_context_for_llm(
+            resumo=resumo,
+            pergunta="Insight executivo",
+            top_alertas_limit=10,
+        )
+        calculos["kpis"] = kpis_payload
+        calculos["top_alertas_estoque"] = top_alertas
         payload = CalculoNodeRequest(
             indicador="Insight executivo",
             periodo_inicio=periodo_inicio,
@@ -199,8 +204,8 @@ class AnalyticsService:
             origem="analytics",
             calculos=calculos,
             observacoes=(
-                "Gerar insight executivo curto. Usar somente os KPIs calculados pela camada analytics. "
-                "Nao recalcular indicadores e nao inventar dados."
+                "Gerar insight executivo curto. Usar somente os dados do contexto_banco e os KPIs "
+                "calculados pela camada analytics. Nao recalcular indicadores e nao inventar dados."
             ),
             forcar_nova_analise=request.forcar_nova_analise,
         )
@@ -227,6 +232,17 @@ class AnalyticsService:
                 periodo_inicio=periodo_inicio,
                 periodo_fim=periodo_fim,
                 resumo=resumo,
+            )
+
+        if intencao == "total_usuarios":
+            summary = self.analytics_repository.fetch_user_summary()
+            role_counts = self.analytics_repository.fetch_user_role_counts()
+            return _chat_response(
+                pergunta=intencao,
+                periodo_inicio=periodo_inicio,
+                periodo_fim=periodo_fim,
+                resposta=_answer_user_summary(summary, role_counts),
+                kpis=["Usuarios cadastrados", "Usuarios ativos", "Usuarios por cargo"],
             )
 
         if intencao == "funcionarios_total":
@@ -592,32 +608,13 @@ class AnalyticsService:
         periodo_fim: date,
         resumo: AnalyticsResumo,
     ) -> ChatPerguntaResponse:
-        top_alertas: list[dict[str, Any]] = [
-            _stock_alert_payload(item)
-            for item in resumo.estoque_lojas
-            if item.status_estoque in {"CRITICO", "ALERTA", "BAIXO"} or item.estoque_atual < item.estoque_minimo
-        ][:5]
-        kpis_relevantes: list[dict[str, Any]] = [
-            item.model_dump(mode="json")
-            for item in resumo.kpis
-            if item.indicador
-            in {
-                "Total de lojas",
-                "Lojas criticas",
-                "Lojas em alerta",
-                "Total enviado",
-                "Total recebido",
-                "Quantidade pendente",
-                "Taxa de recebimento",
-                "Taxa de divergencia",
-                "Anomalias abertas",
-            }
-        ]
-        calculos: dict[str, Any] = {
+        calculos = {
             "pergunta_usuario": pergunta,
-            "kpis": kpis_relevantes,
-            "top_alertas_estoque": top_alertas,
-            "total_lojas_analisadas": len(resumo.estoque_lojas),
+            **self._database_context_for_llm(
+                resumo=resumo,
+                pergunta=pergunta,
+                top_alertas_limit=8,
+            ),
         }
         payload = CalculoNodeRequest(
             indicador="Chat analitico",
@@ -627,8 +624,9 @@ class AnalyticsService:
             filtros={"pergunta_normalizada": _normalize(pergunta)},
             calculos=calculos,
             observacoes=(
-                "Responder em linguagem natural, de forma objetiva, usando somente estes KPIs ja calculados. "
-                "Nao inventar dados, nao recalcular formulas e nao citar que recebeu JSON."
+                "Responder em linguagem natural, de forma objetiva, usando somente o contexto_banco, "
+                "as distribuicoes e os KPIs ja calculados pelo backend. Nao inventar dados, "
+                "nao recalcular formulas e nao citar que recebeu JSON."
             ),
         )
 
@@ -649,8 +647,63 @@ class AnalyticsService:
             periodo_inicio=periodo_inicio,
             periodo_fim=periodo_fim,
             resposta=_format_insight_for_chat(insight),
-            kpis=[str(item.get("indicador") or "") for item in kpis_relevantes],
+            kpis=[str(item.get("indicador") or "") for item in _get_context_kpis(calculos)],
         )
+
+    def _database_context_for_llm(
+        self,
+        *,
+        resumo: AnalyticsResumo,
+        pergunta: str,
+        top_alertas_limit: int,
+    ) -> dict[str, Any]:
+        top_alertas = [
+            _stock_alert_payload(item)
+            for item in resumo.estoque_lojas
+            if item.status_estoque in {"CRITICO", "ALERTA", "BAIXO"} or item.estoque_atual < item.estoque_minimo
+        ][:top_alertas_limit]
+        kpis_relevantes = [
+            item.model_dump(mode="json")
+            for item in resumo.kpis
+            if item.indicador
+            in {
+                "Total de lojas",
+                "Lojas sem estoque cadastrado",
+                "Lojas criticas",
+                "Lojas em alerta",
+                "Total enviado",
+                "Total recebido",
+                "Quantidade pendente",
+                "Taxa de recebimento",
+                "Taxa de divergencia",
+                "Anomalias abertas",
+            }
+        ]
+
+        return {
+            "origem_dados": "postgres_readonly_via_backend",
+            "pergunta_normalizada": _normalize(pergunta),
+            "periodo_consultado": {
+                "inicio": resumo.periodo_inicio.isoformat() if resumo.periodo_inicio else None,
+                "fim": resumo.periodo_fim.isoformat() if resumo.periodo_fim else None,
+            },
+            "kpis": kpis_relevantes,
+            "contexto_banco": {
+                "total_lojas_analisadas": len(resumo.estoque_lojas),
+                "status_estoque": _stock_status_counts(resumo.estoque_lojas),
+                "lojas_por_uf": _store_counts_payload(self.analytics_repository.fetch_store_counts_by_uf()),
+                "usuarios": _user_summary_payload(self.analytics_repository.fetch_user_summary()),
+                "usuarios_ativos_por_cargo": _role_counts_payload(self.analytics_repository.fetch_user_role_counts()),
+                "top_alertas_estoque": top_alertas,
+            },
+            "top_alertas_estoque": top_alertas,
+            "total_lojas_analisadas": len(resumo.estoque_lojas),
+            "regras_de_uso_dos_dados": [
+                "Dados objetivos ja foram consultados no PostgreSQL pelo backend.",
+                "A LLM deve apenas interpretar e explicar os dados recebidos.",
+                "Se um dado nao estiver neste contexto, dizer que precisa de uma consulta especifica.",
+            ],
+        }
 
 
 def _stock_alert_payload(item: EstoqueLojaIndicador) -> dict[str, Any]:
@@ -768,6 +821,8 @@ def _detect_intent(pergunta: str) -> str:
     role = _extract_role(text)
     if role is not None:
         return "role_loja" if "loja" in text else "role_total"
+    if _asks_total_users(text):
+        return "total_usuarios"
     if _asks_total_employees(text):
         return "funcionarios_total"
     if _asks_total_stores(text):
@@ -831,6 +886,11 @@ def _has_business_context(text: str) -> bool:
     return any(
         term in text
         for term in [
+            "banco",
+            "banco de dados",
+            "dados",
+            "usuario",
+            "usuarios",
             "estoque",
             "loja",
             "lojas",
@@ -857,6 +917,9 @@ def _has_business_context(text: str) -> bool:
             "relatorio",
             "kpi",
             "indicador",
+            "operacao",
+            "verdecard",
+            "be a ba",
         ]
     )
 
@@ -875,6 +938,19 @@ def _asks_analytical_insight(text: str) -> bool:
         "decisao",
         "situacao geral",
         "resumo executivo",
+        "dados do banco",
+        "banco de dados",
+        "dados",
+        "operacao",
+        "panorama",
+        "diagnostico",
+        "avaliacao",
+        "fale sobre",
+        "me fale",
+        "conte sobre",
+        "o que voce ve",
+        "o que voce percebe",
+        "o que voce consegue analisar",
     ]
     return any(term in text for term in analytical_terms)
 
@@ -886,6 +962,18 @@ def _asks_total_stores(text: str) -> bool:
         or "lojas temos" in text
         or "lojas cadastradas" in text
         or "numero de lojas" in text
+    )
+
+
+def _asks_total_users(text: str) -> bool:
+    if "usuario" not in text and "usuarios" not in text:
+        return False
+    return (
+        "quantos" in text
+        or "total" in text
+        or "cadastrado" in text
+        or "cadastrados" in text
+        or "temos" in text
     )
 
 
@@ -1133,6 +1221,43 @@ def _stock_status_counts(estoque: list[EstoqueLojaIndicador]) -> dict[str, int]:
     return counts
 
 
+def _store_counts_payload(counts: Mapping[str, int]) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "uf": uf or "SEM_UF",
+            "estado": _state_label(uf) if uf else "Sem UF cadastrada",
+            "total_lojas": total,
+        }
+        for uf, total in counts.items()
+    ]
+    return sorted(rows, key=lambda row: (-_to_int(row["total_lojas"]), str(row["uf"])))
+
+
+def _role_counts_payload(rows: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "cargo": str(row.get("cargo") or "sem_cargo"),
+            "total_usuarios_ativos": _to_int(row.get("total")),
+        }
+        for row in rows
+    ]
+
+
+def _user_summary_payload(summary: Mapping[str, Any]) -> dict[str, int]:
+    return {
+        "total_cadastrados": _to_int(summary.get("total_cadastrados")),
+        "total_ativos": _to_int(summary.get("total_ativos")),
+        "total_inativos": _to_int(summary.get("total_inativos")),
+    }
+
+
+def _get_context_kpis(calculos: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    raw = calculos.get("kpis")
+    if isinstance(raw, list):
+        return [cast(Mapping[str, Any], item) for item in raw if isinstance(item, Mapping)]
+    return []
+
+
 def _role_count(rows: list[Mapping[str, Any]], role: str) -> int:
     normalized_role = _normalize(role)
     return sum(
@@ -1159,6 +1284,17 @@ def _format_role_breakdown(rows: list[Mapping[str, Any]]) -> str:
     if other_total:
         pieces.append(f"{other_total} outro(s) cargo(s)")
     return ", ".join(pieces) if pieces else "sem funcionarios ativos por cargo"
+
+
+def _answer_user_summary(summary: Mapping[str, Any], role_counts: list[Mapping[str, Any]]) -> str:
+    total = _to_int(summary.get("total_cadastrados"))
+    ativos = _to_int(summary.get("total_ativos"))
+    inativos = _to_int(summary.get("total_inativos"))
+    return (
+        f"Temos {total} usuario(s) cadastrado(s) no sistema: "
+        f"{ativos} ativo(s) e {inativos} inativo(s). "
+        f"Entre os ativos, a divisao por cargo e: {_format_role_breakdown(role_counts)}."
+    )
 
 
 def _role_label(role: str, *, plural: bool) -> str:

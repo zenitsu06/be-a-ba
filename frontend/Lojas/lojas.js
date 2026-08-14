@@ -411,6 +411,28 @@ function obterLojasVisiveis() {
 }
 
 function exportarRelatorioLojas() {
+    const linhasPadrao = obterLojasVisiveis().map(loja =>
+        window.OferteReports?.normalizarLinhaRelatorioEstoque
+            ? window.OferteReports.normalizarLinhaRelatorioEstoque(loja, usuarioLogado, {
+                quantidade_enviada_estoque: loja['Quantidade atual'] ?? loja.quantidade_atual ?? '-',
+                quantidade_recomendada: loja.quantidade_recomendada ?? '-',
+                quantidade_minima: loja.quantidade_minima ?? '-',
+                status_prioridade_loja: statusPrioridadeLoja(loja),
+                divergencia: '-'
+            })
+            : loja
+    );
+
+    window.OferteReports?.exportarCsv({
+        nome: 'Relatorio de lojas',
+        origem: 'Lojas',
+        arquivo: 'lojas.csv',
+        usuario: usuarioLogado,
+        linhas: linhasPadrao,
+        colunas: window.OferteReports?.colunasRelatorioEstoque?.() || []
+    });
+    return;
+
     const linhas = obterLojasVisiveis().map(loja => ({
         codigo_loja: loja.codigo_loja,
         nome_da_loja: loja.nome_da_loja,
@@ -443,6 +465,15 @@ function exportarRelatorioLojas() {
 
 function salvarLojasLocal() {
     localStorage.setItem(CHAVE_LOJAS_LOCAL, JSON.stringify({ lojas, estoque_lojas: estoqueLojas }));
+}
+
+function statusPrioridadeLoja(loja) {
+    const atual = Number(loja['Quantidade atual'] ?? loja.quantidade_atual ?? 0);
+    const minimo = Number(loja.quantidade_minima ?? 0);
+    const recomendado = Number(loja.quantidade_recomendada ?? Math.max(minimo * 3, 1));
+    if (atual <= minimo) return 'Alerta';
+    if (atual < recomendado) return 'Atencao';
+    return 'Acima da media';
 }
 
 function montarEstoqueAPartirDasLojas(lista) {

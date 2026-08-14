@@ -1,14 +1,14 @@
 {
-  "gerado_em": "2026-07-26T15:37:37.030509",
+  "gerado_em": "2026-08-14T16:23:52.126200",
   "total_lojas": 677,
   "resumo": {
-    "mensagem": "Análise concluída em 26/07/2026 15:37\nQuantidade de lojas em estado crítico: 6\nPrioridade máxima: QUERO-QUERO MTZ (RS), LOJA QUERO-QUERO 10 (RS), LOJAS QUERO-QUERO 100 (RS), LOJA QUERO-QUERO 101 (RS), LOJA QUERO-QUERO 102 (RS), LOJA QUERO-QUERO 103 (RS)",
+    "mensagem": "Análise concluída em 14/08/2026 16:23\nQuantidade de lojas em estado crítico: 6\nPrioridade máxima: QUERO-QUERO MTZ (RS), LOJA QUERO-QUERO 10 (RS), LOJAS QUERO-QUERO 100 (RS), LOJA QUERO-QUERO 101 (RS), LOJA QUERO-QUERO 102 (RS), LOJA QUERO-QUERO 103 (RS)",
     "lojas_criticas": 6,
-    "lojas_alerta": 8,
+    "lojas_alerta": 7,
     "lojas_media": 133,
-    "lojas_cheias": 530,
-    "lojas_baixas": 8,
-    "lojas_ok": 663,
+    "lojas_cheias": 531,
+    "lojas_baixas": 7,
+    "lojas_ok": 664,
     "prioridade_maxima": "QUERO-QUERO MTZ (RS), LOJA QUERO-QUERO 10 (RS), LOJAS QUERO-QUERO 100 (RS), LOJA QUERO-QUERO 101 (RS), LOJA QUERO-QUERO 102 (RS), LOJA QUERO-QUERO 103 (RS)",
     "anomalias": 0,
     "notificacoes_workplace": 6
@@ -80,7 +80,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: QUERO-QUERO MTZ (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     },
     {
       "canal": "Workplace",
@@ -91,7 +91,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: LOJA QUERO-QUERO 10 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     },
     {
       "canal": "Workplace",
@@ -102,7 +102,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: LOJAS QUERO-QUERO 100 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     },
     {
       "canal": "Workplace",
@@ -113,7 +113,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: LOJA QUERO-QUERO 101 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     },
     {
       "canal": "Workplace",
@@ -124,7 +124,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: LOJA QUERO-QUERO 102 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     },
     {
       "canal": "Workplace",
@@ -135,7 +135,7 @@
       "nivel": "BAIXO",
       "mensagem": "⚠ ALERTA BAIXO: LOJA QUERO-QUERO 103 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões",
       "status": "simulado",
-      "enviado_em": "2026-07-26 15:37:37"
+      "enviado_em": "2026-08-14 16:23:52"
     }
   ],
   "analises": [
@@ -282,30 +282,6 @@
       "conversao_base_calculo": "simulada",
       "alerta_nivel": "BAIXO",
       "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 158 talões (confiança 60%). Consumo estimado em 14 dias: 72 talões. Reposição imediata recomendada. | Taxa de conversao historica simulada: 11.0% (~9 cartoes estimados). | Prioridade de envio: Crítico (score: 98/100). | ⚠ ALERTA BAIXO: LOJA QUERO-QUERO 103 (RS) — Estoque atual: 18 | Mínimo: 30 | Reposição urgente: 72 talões"
-    },
-    {
-      "codigo_loja": "104",
-      "nome_loja": "LOJA QUERO-QUERO 104",
-      "uf": "RS",
-      "estoque_atual": 38,
-      "quantidade_sugerida": 114,
-      "quantidade_minima": 30,
-      "tendencia": "estável",
-      "confianca": 60,
-      "dias_ate_minimo": 2,
-      "prioridade": "Alerta",
-      "classe_css": "alerta",
-      "estado_estoque": "Alerta",
-      "score_prioridade": 90,
-      "consumo_14d_estimado": 52,
-      "recebido_14d": 0,
-      "enviado_14d": 0,
-      "reposicao_necessaria": 114,
-      "taxa_conversao_historica": 12.0,
-      "cartoes_estimados_30d": 10,
-      "conversao_base_calculo": "simulada",
-      "alerta_nivel": null,
-      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 114 talões (confiança 60%). Consumo estimado em 14 dias: 52 talões. Estoque mínimo atingido em ~2 dias. | Taxa de conversao historica simulada: 12.0% (~10 cartoes estimados). | Prioridade de envio: Alerta (score: 90/100)."
     },
     {
       "codigo_loja": "105",
@@ -16386,6 +16362,30 @@
       "conversao_base_calculo": "simulada",
       "alerta_nivel": null,
       "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 4 talões (confiança 60%). Consumo estimado em 14 dias: 14 talões. Estoque mínimo atingido em ~105 dias. | Taxa de conversao historica simulada: 16.0% (~14 cartoes estimados). | Prioridade de envio: Cheio (score: 25/100)."
+    },
+    {
+      "codigo_loja": "104",
+      "nome_loja": "LOJA QUERO-QUERO 104",
+      "uf": "RS",
+      "estoque_atual": 414,
+      "quantidade_sugerida": 29,
+      "quantidade_minima": 30,
+      "tendencia": "estável",
+      "confianca": 76,
+      "dias_ate_minimo": 64,
+      "prioridade": "Cheio",
+      "classe_css": "cheio",
+      "estado_estoque": "Cheio",
+      "score_prioridade": 15,
+      "consumo_14d_estimado": 84,
+      "recebido_14d": 376,
+      "enviado_14d": 376,
+      "reposicao_necessaria": 100,
+      "taxa_conversao_historica": 13.8,
+      "cartoes_estimados_30d": 51,
+      "conversao_base_calculo": "simulada",
+      "alerta_nivel": null,
+      "mensagem": "Modelo preditivo: consumo com tendência estável. Sugestão de envio: 29 talões (confiança 76%). Consumo estimado em 14 dias: 84 talões. Estoque mínimo atingido em ~64 dias. | Taxa de conversao historica simulada: 13.8% (~51 cartoes estimados). | Prioridade de envio: Cheio (score: 15/100)."
     }
   ]
 }

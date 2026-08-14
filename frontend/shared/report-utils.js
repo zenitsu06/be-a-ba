@@ -27,6 +27,71 @@
         return `${mapa.year}-${mapa.month}-${mapa.day} ${mapa.hour}:${mapa.minute}:${mapa.second}`;
     }
 
+    function dataHoje() {
+        return formatarDataHora(new Date()).split(' ')[0];
+    }
+
+    function colunasRelatorioEstoque() {
+        return [
+            ['data', 'Data'],
+            ['nome_usuario', 'Nome do usuario que gerou aquele relatorio'],
+            ['matricula', 'Matricula'],
+            ['quantidade_enviada_estoque', 'Quantidade enviada para o estoque daquela loja'],
+            ['quantidade_recomendada', 'Quantidade recomendada'],
+            ['quantidade_minima', 'Quantidade minima'],
+            ['status_prioridade_loja', 'Status de prioridade daquela loja'],
+            ['divergencia', 'Divergencia']
+        ];
+    }
+
+    function primeiroValor(...valores) {
+        const encontrado = valores.find(valor => valor !== null && valor !== undefined && valor !== '');
+        return encontrado === undefined ? '-' : encontrado;
+    }
+
+    function normalizarLinhaRelatorioEstoque(linha = {}, usuario = {}, extras = {}) {
+        return {
+            data: primeiroValor(extras.data, dataHoje()),
+            nome_usuario: primeiroValor(extras.nome_usuario, linha.nome_usuario, linha.nome, usuario?.nome, usuario?.nome_usuario, 'Usuario'),
+            matricula: primeiroValor(extras.matricula, linha.matricula, linha.matricula_usuario, usuario?.matricula, usuario?.matricula_usuario, ''),
+            quantidade_enviada_estoque: primeiroValor(
+                extras.quantidade_enviada_estoque,
+                linha.quantidade_enviada_estoque,
+                linha.quantidade_enviada,
+                linha.quantidadeEnviada,
+                linha.quantidade_atual,
+                linha.quantidadeAtual
+            ),
+            quantidade_recomendada: primeiroValor(
+                extras.quantidade_recomendada,
+                linha.quantidade_recomendada,
+                linha.quantidadeRecomendada,
+                linha.recomendada
+            ),
+            quantidade_minima: primeiroValor(
+                extras.quantidade_minima,
+                linha.quantidade_minima,
+                linha.quantidadeMinima,
+                linha.minima
+            ),
+            status_prioridade_loja: primeiroValor(
+                extras.status_prioridade_loja,
+                linha.status_prioridade_loja,
+                linha.prioridade_ia,
+                linha.prioridade,
+                linha.statusTexto,
+                linha.status
+            ),
+            divergencia: primeiroValor(
+                extras.divergencia,
+                linha.divergencia,
+                linha.divergenciaTexto,
+                linha.quantidade_divergencia,
+                linha.quantidadeDivergencia
+            )
+        };
+    }
+
     function normalizarColunas(colunas, linhas) {
         if (Array.isArray(colunas) && colunas.length) return colunas;
         const primeiraLinha = linhas.find(linha => linha && typeof linha === 'object') || {};
@@ -119,6 +184,8 @@
     window.OferteReports = {
         CHAVE_HISTORICO_RELATORIOS,
         exportarCsv,
+        colunasRelatorioEstoque,
+        normalizarLinhaRelatorioEstoque,
         registrarRelatorio,
         listarHistorico,
         montarCsv

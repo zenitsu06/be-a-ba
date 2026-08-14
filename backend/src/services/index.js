@@ -19,6 +19,16 @@ const {
 } = require('../utils/normalizers');
 
 const CORE_PROFILE_SLUGS = new Set(['administrador', 'gestor', 'lojista']);
+const REPORT_EXPORT_COLUMNS = [
+  { key: 'data', label: 'Data' },
+  { key: 'nome_usuario', label: 'Nome do usuario que gerou aquele relatorio' },
+  { key: 'matricula', label: 'Matricula' },
+  { key: 'quantidade_enviada_estoque', label: 'Quantidade enviada para o estoque daquela loja' },
+  { key: 'quantidade_recomendada', label: 'Quantidade recomendada' },
+  { key: 'quantidade_minima', label: 'Quantidade minima' },
+  { key: 'status_prioridade_loja', label: 'Status de prioridade daquela loja' },
+  { key: 'divergencia', label: 'Divergencia' },
+];
 
 async function health() {
   try {
@@ -592,7 +602,23 @@ async function listWorkplaceNotifications() {
 }
 
 async function listSentReports() {
-  return repository.listSentReports();
+  return (await repository.listSentReports()).map((report) => {
+    const dados = report.dados && typeof report.dados === 'object' ? report.dados : {};
+    return normalizeReportExportRow(
+      {
+        ...dados,
+        ...report,
+        nome_usuario: dados.nome_usuario || dados.nome || report.nome,
+        matricula: dados.matricula || dados.matricula_usuario || report.matricula || report.matricula_usuario,
+        data: dados.data || dados.data_geracao || report.enviado_em,
+      },
+      {
+        generatedAt: report.enviado_em,
+        userName: dados.nome_usuario || dados.nome || report.nome,
+        matricula: dados.matricula || dados.matricula_usuario || report.matricula || report.matricula_usuario,
+      },
+    );
+  });
 }
 
 async function listMaintenance() {
@@ -675,8 +701,14 @@ async function currentAuthUser() {
 
 async function submitReport(payload) {
   const sender = payload.nome_usuario || payload.nome || 'Usuario';
+  const matricula = payload.matricula_usuario || payload.matricula || '';
   const rows = Array.isArray(payload.linhas) ? payload.linhas : [];
   const sentAt = new Date();
+  const context = {
+    generatedAt: sentAt,
+    userName: sender,
+    matricula,
+  };
 
   await repository.withTransaction(async (client) => {
     for (const row of rows) {
@@ -686,7 +718,7 @@ async function submitReport(payload) {
         destinatario: payload.destinatario || null,
         assunto: payload.assunto || null,
         sentAt,
-        row,
+        row: normalizeReportExportRow(row, context),
       });
     }
   });
@@ -697,13 +729,42 @@ async function submitReport(payload) {
   };
 }
 
-async function listManagerReport() {
+function reportContext(filters = {}) {
+  return {
+    generatedAt: filters.data || filters.data_geracao || new Date(),
+    userName: filters.nome_usuario || filters.nome || filters.usuario || '',
+    matricula: filters.matricula || filters.matricula_usuario || '',
+  };
+}
+
+function formatReportDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  const text = String(value).trim();
+  return text.includes('T') ? text.slice(0, 10) : text.split(' ')[0];
+}
+
+function normalizeReportExportRow(row, context = {}) {
+  return {
+    data: formatReportDate(row.data || row.data_geracao || row.data_hora || row.data_hora_envio || context.generatedAt),
+    nome_usuario: row.nome_usuario || row.nome || context.userName || '',
+    matricula: row.matricula || row.matricula_usuario || row.matricula_usuario_gerador || context.matricula || '',
+    quantidade_enviada_estoque: row.quantidade_enviada_estoque || row.quantidade_enviada || '',
+    quantidade_recomendada: row.quantidade_recomendada || row.recomendada || '',
+    quantidade_minima: row.quantidade_minima || row.minima || '',
+    status_prioridade_loja: row.status_prioridade_loja || row.prioridade_ia || row.prioridade || '',
+    divergencia: row.divergencia || row.quantidade_divergencia || '',
+  };
+}
+
+async function listManagerReport(filters = {}) {
+  const context = reportContext(filters);
   const envios = await listShipments();
   const recebimentos = Object.fromEntries((await listReceipts()).map((item) => [item.id_envio, item]));
   return envios.map((envio) => {
     const recebimento = recebimentos[envio.id_envio];
     const quantidadeRecebida = recebimento ? toNumber(recebimento.quantidade_recebida) : null;
-    return {
+    return normalizeReportExportRow({
       data_hora: envio.data_hora_envio,
       remessa: envio.id_envio,
       loja: envio.loja_nome || envio.cod_loja,
@@ -712,7 +773,7 @@ async function listManagerReport() {
       minima: envio.quantidade_minima,
       prioridade: envio.prioridade_ia,
       divergencia: quantidadeRecebida === null ? '' : Math.abs(envio.quantidade_enviada - quantidadeRecebida),
-    };
+    }, context);
   });
 }
 
@@ -780,7 +841,12 @@ async function reportRows(reportType, filters = {}) {
   };
 
   if (!reports[reportType]) throw new AppError('Relatorio invalido.', 404);
-  return filterReportRows(await reports[reportType](), filters);
+  return filterReportRows(await reports[reportType](filters), filters);
+}
+
+function reportColumns(reportType) {
+  if (['gestor', 'relatorios_enviados'].includes(reportType)) return REPORT_EXPORT_COLUMNS;
+  return null;
 }
 
 function filterReportRows(rows, filters = {}) {
@@ -799,7 +865,7 @@ function filterReportRows(rows, filters = {}) {
 }
 
 function rowDate(row) {
-  for (const key of ['data_hora', 'data_hora_envio', 'data_hora_recebimento', 'enviado_em', 'atualizado_em', 'data_cadastro']) {
+  for (const key of ['data', 'data_hora', 'data_hora_envio', 'data_hora_recebimento', 'enviado_em', 'atualizado_em', 'data_cadastro']) {
     if (row[key]) return String(row[key]).split(' ')[0];
   }
   return '';
@@ -921,6 +987,7 @@ module.exports = {
   redefineUserPassword,
   requestPasswordRecovery,
   runAiAnalysis,
+  reportColumns,
   reportRows,
   saveProfile,
   saveStore,
